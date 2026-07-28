@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação</title>
+</head>
+<style>
+    /* --- Estilos Globais e Reset (Opcional, mas recomendado) --- */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* Uma fonte sans-serif limpa */
+    }
+
+    /* --- Container Principal do Cartão --- */
+    .card-container {
+        /* Fundo azul marinho escuro */
+        background-color: #0d214a;
+        /* Cantos arredondados pronunciados */
+        border-radius: 30px;
+        /* Espaçamento interno */
+        padding: 40px 30px;
+        /* Sombra suave para dar profundidade */
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        /* Centralização do conteúdo */
+        width: 350px;
+        /* Largura fixa aproximada da imagem */
+        margin: 50px auto;
+        /* Centraliza na tela para visualização */
+        color: white;
+        /* Texto global branco */
+        text-align: center;
+        /* Flexbox para empilhar elementos verticalmente */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* --- Seção do Cabeçalho (Ícone e Títulos) --- */
+    .header-section {
+        margin-bottom: 25px;
+    }
+
+    .logo-circle {
+        background-color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto 15px auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .logo-icon {
+        max-height: 50px;
+        max-width: 50px;
+    }
+
+    .location-title {
+        font-size: 24px;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .phone-number {
+        font-size: 18px;
+        font-weight: 400;
+        opacity: 0.9;
+    }
+
+    /* --- Seção do Endereço --- */
+    .address-section {
+        margin-bottom: 35px;
+        width: 100%;
+    }
+
+    .address-text {
+        font-size: 14px;
+        line-height: 1.6;
+        font-weight: 300;
+        opacity: 0.85;
+        /* Impede que o texto quebre muito cedo */
+        word-wrap: break-word;
+    }
+
+    /* --- Seção dos Botões --- */
+    .buttons-section {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        /* Espaço entre os botões */
+    }
+
+    /* --- Estilo Base dos Botões --- */
+    .btn-primary {
+        /* Gradiente verde-azulado */
+        background: linear-gradient(135deg, #62a232 0%, #1a4f5f 100%);
+        border-radius: 50px;
+        /* Botões ovais */
+        padding: 15px 25px;
+        color: white;
+        text-decoration: none;
+        /* Remove sublinhado de link */
+        font-size: 16px;
+        font-weight: 500;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        /* Espaço entre texto e ícone SVG */
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        /* Botões ocupam a largura total do container */
+    }
+
+    /* Efeito de hover (opcional, para interatividade) */
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* --- Estilização dos Ícones SVG dentro dos botões --- */
+    .btn-primary svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+        /* Faz o SVG usar a cor do texto (branco) */
+    }
+</style>
+
+<body>
+    <div class="card-container">
+        <div class="header-section">
+            <div class="logo-circle">
+                <img src="image.png" alt="Logo" class="logo-icon">
+            </div>
+            <h3 class="location-title">Barra da Tijuca</h3>
+            <p class="phone-number">+55 (21) 3400-7495</p>
+        </div>
+
+        <div class="address-section">
+            <p class="address-text">
+                Av. Alm. Júlio de Sá Bierrenbach, 200 (Edifício Pacific) - Lojas 103 e 104 - CEP 22775-028 - Barra da
+                Tijuca - RJ
+            </p>
+        </div>
+
+        <div class="buttons-section">
+            <a href="https://www.instagram.com/brasilbrokers_barra/" target="_blank" class="btn-primary">
+                Ver instagram
+            </a>
+
+            <a href="https://g.page/r/CfK13r2YnHYVEBM/review" target="_blank" class="btn-primary">
+                Nos avalie Google
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

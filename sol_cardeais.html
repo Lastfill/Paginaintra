@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sombra Solar 3D - Google Maps</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; overflow: hidden; }
+        
+        #app { display: grid; grid-template-columns: 350px 1fr; height: 100vh; }
+        
+        #sidebar {
+            background: #1a1a2e; padding: 20px; overflow-y: auto;
+            border-right: 2px solid #00d4aa; z-index: 10;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+        }
+        
+        .section { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #333; }
+        .section h3 { color: #00d4aa; margin-bottom: 12px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input, select {
+            width: 100%; padding: 10px; margin: 5px 0 15px;
+            background: #2a2a4a; border: 1px solid #444;
+            color: #fff; border-radius: 6px; font-size: 0.9rem;
+        }
+        input:focus, select:focus { outline: none; border-color: #00d4aa; }
+        
+        button {
+            width: 100%; padding: 12px; background: #00d4aa;
+            color: #000; border: none; border-radius: 6px;
+            font-weight: bold; cursor: pointer; margin: 5px 0;
+            transition: all 0.2s; font-size: 0.95rem;
+        }
+        button:hover { background: #00b894; transform: translateY(-2px); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+        
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        .status {
+            padding: 10px; border-radius: 6px; margin: 10px 0;
+            font-size: 0.85rem; text-align: center;
+        }
+        .status.ok { background: rgba(0, 212, 170, 0.2); color: #00d4aa; }
+        .status.err { background: rgba(255, 80, 80, 0.2); color: #ff5050; }
+        .status.warn { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
+        
+        .slider-wrap { margin: 15px 0; }
+        .slider-wrap label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.85rem; }
+        input[type="range"] { width: 100%; accent-color: #00d4aa; }
+        .time-val { font-size: 1.8rem; font-weight: bold; text-align: center; color: #00d4aa; margin: 10px 0; }
+        
+        #map-container {
+            position: relative; width: 100%; height: 100%;
+            background: #000;
+        }
+        
+        #map { 
+            width: 100%; 
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        /* Canvas 3D - COBRE TODO O MAPA */
+        #canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        #overlay-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            z-index: 6;
+            pointer-events: none;
+        }
+        
+        .info-box {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid #00d4aa;
+            font-family: monospace;
+            font-size: 0.85rem;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+        .info-box strong { color: #00d4aa; }
+
+        /* Autocomplete Google Places */
+        .pac-container {
+            background: #1a1a2e;
+            border: 1px solid #00d4aa;
+            border-radius: 6px;
+            font-family: 'Segoe UI', sans-serif;
+            margin-top: 2px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+            z-index: 9999 !important;
+        }
+        .pac-item {
+            padding: 8px 12px;
+            color: #ccc;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-top: 1px solid #2a2a4a;
+        }
+        .pac-item:first-child { border-top: none; }
+        .pac-item:hover, .pac-item-selected {
+            background: rgba(0, 212, 170, 0.15);
+            color: #fff;
+        }
+        .pac-item-query { color: #00d4aa; font-weight: bold; }
+        .pac-icon { display: none; }
+        .pac-matched { color: #00ff88; }
+        
+        #compass {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(26, 26, 46, 0.95);
+            border: 2px solid #00d4aa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6;
+        }
+        
+        #compass-arrow {
+            width: 0; height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 25px solid #ff4444;
+            position: absolute;
+            top: 8px;
+            transition: transform 0.3s ease;
+        }
+        .compass-n { position: absolute; top: 3px; font-size: 0.7rem; color: #ff4444; font-weight: bold; }
+        .compass-s { position: absolute; bottom: 3px; font-size: 0.7rem; }
+        .compass-e { position: absolute; right: 5px; font-size: 0.7rem; }
+        .compass-w { position: absolute; left: 5px; font-size: 0.7rem; }
+        
+        #loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 26, 46, 0.98);
+            padding: 30px 50px;
+            border-radius: 10px;
+            border: 2px solid #00d4aa;
+            text-align: center;
+            z-index: 100;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #333;
+            border-top-color: #00d4aa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Marcador central VISÍVEL */
+        #center-indicator {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: rgba(0, 212, 170, 0.6);
+            border: 3px solid #00ff88;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 7;
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.8);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+        }
+        
+        /* ===== MOBILE RESPONSIVO ===== */
+        @media (max-width: 900px) {
+            body { overflow: hidden; }
+
+            #app {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                height: 100dvh;
+            }
+
+            #sidebar {
+                max-height: 38vh;
+                overflow-y: auto;
+                padding: 12px 14px;
+                border-right: none;
+                border-bottom: 2px solid #00d4aa;
+            }
+
+            #sidebar h2 { font-size: 1rem; margin-bottom: 12px; }
+            .section { margin-bottom: 14px; padding-bottom: 12px; }
+            .section h3 { font-size: 0.8rem; margin-bottom: 8px; }
+
+            input, select {
+                padding: 7px 9px;
+                margin: 3px 0 10px;
+                font-size: 0.82rem;
+            }
+
+            button {
+                padding: 9px;
+                font-size: 0.82rem;
+                margin: 3px 0;
+            }
+
+            .time-val { font-size: 1.3rem; margin: 5px 0; }
+
+            /* Mapa ocupa o restante da tela */
+            #map-container {
+                height: 100%;
+                min-height: 0;
+            }
+
+            /* Info boxes — movidos para a PARTE INFERIOR do mapa, abaixo do prédio */
+            #overlay-info {
+                top: auto;
+                bottom: 90px;          /* acima da bússola */
+                left: 0;
+                right: 0;
+                padding: 0 8px;
+                gap: 6px;
+                justify-content: center;
+                flex-wrap: nowrap;
+            }
+
+            .info-box {
+                padding: 6px 10px;
+                font-size: 0.72rem;
+                line-height: 1.4;
+                flex: 1 1 0;
+                min-width: 0;
+                max-width: 33%;
+                text-align: center;
+            }
+
+            /* Bússola menor no mobile */
+            #compass {
+                bottom: 12px;
+                right: 12px;
+                width: 52px;
+                height: 52px;
+            }
+            .compass-n, .compass-s, .compass-e, .compass-w { font-size: 0.6rem; }
+
+            /* Indicador central menor */
+            #center-indicator {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #sidebar { max-height: 35vh; padding: 10px 12px; }
+
+            #overlay-info {
+                bottom: 78px;
+                gap: 4px;
+                padding: 0 5px;
+            }
+
+            .info-box {
+                padding: 5px 7px;
+                font-size: 0.67rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="sidebar">
+        <h2 style="color:#00d4aa; margin-bottom:20px;">🌞 Sombra Solar 3D</h2>
+        
+        <div class="section">
+            <h3>📍 Localização</h3>
+            <input type="text" id="address" value="Copacabana, Rio de Janeiro" placeholder="Endereço completo">
+            <div class="btn-row">
+                <button onclick="searchAddress()">🔍 Buscar</button>
+                <button onclick="useCurrent()">📍 Minha Posição</button>
+            </div>
+            <div id="loc-status" class="status"></div>
+            
+            <div style="margin-top:10px; font-size:0.8rem; color:#888;">
+                <strong>Locais rápidos:</strong><br>
+                <button onclick="gotoLocation(-22.9711,-43.1826,'Copacabana')" style="padding:5px;font-size:0.8rem;margin:2px 0;">Copacabana</button>
+                <button onclick="gotoLocation(-22.9838,-43.1923,'Ipanema')" style="padding:5px;font-size:0.8rem;margin:2px 0;">Ipanema</button>
+                <button onclick="gotoLocation(-23.0131,-43.3054,'Barra')" style="padding:5px;font-size:0.8rem;margin:2px 0;">Barra da Tijuca</button>
+                <button onclick="gotoLocation(-22.9068,-43.1729,'Centro')" style="padding:5px;font-size:0.8rem;margin:2px 0;">Centro</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>🏢 Edifício</h3>
+            <label>Altura: <span id="height-val">50</span>m</label>
+            <input type="range" id="height" min="10" max="200" value="50">
+            <label>Largura: <span id="width-val">20</span>m</label>
+            <input type="range" id="width" min="10" max="60" value="20">
+            <label>Profundidade: <span id="depth-val">20</span>m</label>
+            <input type="range" id="depth" min="10" max="60" value="20">
+            <label>Orientação da frente:</label>
+            <select id="orientation">
+                <option value="0">⬆️ Norte (0°)</option>
+                <option value="45">↗️ Nordeste</option>
+                <option value="90" selected>➡️ Leste (90°)</option>
+                <option value="135">↘️ Sudeste</option>
+                <option value="180">⬇️ Sul (180°)</option>
+                <option value="225">↙️ Sudoeste</option>
+                <option value="270">⬅️ Oeste (270°)</option>
+                <option value="315">↖️ Noroeste</option>
+            </select>
+        </div>
+        
+        <div class="section">
+            <h3>📅 Data e Hora</h3>
+            <input type="date" id="date">
+            <div class="slider-wrap">
+                <label>Horário do dia:</label>
+                <div class="time-val" id="time-display">12:00</div>
+                <input type="range" id="time" min="360" max="1200" value="720" step="5">
+                <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;">
+                    <span>06:00</span><span>12:00</span><span>18:00</span>
+                </div>
+            </div>
+            <button onclick="togglePlay()" id="play-btn">▶ Animar dia</button>
+            <button onclick="resetView()">🔄 Resetar</button>
+        </div>
+        
+        <div class="section">
+            <h3>👁️ Visualização</h3>
+            <label>Ângulo da câmera:</label>
+            <select id="camera-angle" onchange="updateCamera()">
+                <option value="top">🔝 Vista Superior</option>
+                <option value="iso" selected>📐 Isométrica</option>
+                <option value="side">👁️ Lateral</option>
+                <option value="street">🏙️ Nível da Rua</option>
+            </select>
+            <button onclick="toggleShadows()" id="shadow-btn">🌑 Sombras: ATIVADAS</button>
+        </div>
+        
+        <div class="section" style="border:none;">
+            <h3>📊 Dados Solares</h3>
+            <div style="font-family:monospace;font-size:0.9rem;line-height:1.8;">
+                <div>Azimute: <strong id="az-val">--</strong></div>
+                <div>Altitude: <strong id="alt-val">--</strong></div>
+                <div>Nascer: <strong id="rise-val">--:--</strong></div>
+                <div>Pôr: <strong id="set-val">--:--</strong></div>
+            </div>
+            <div id="sun-info" class="status ok" style="margin-top:10px;">☀️ Aguardando...</div>
+        </div>
+    </div>
+    
+    <div id="map-container">
+        <div id="map"></div>
+        <canvas id="canvas-overlay"></canvas>
+        <div id="center-indicator"></div>
+        
+        <div id="overlay-info">
+            <div class="info-box">
+                <strong>🧭 Sol:</strong><br>
+                Direção: <span id="sun-dir">--</span><br>
+                Altitude: <span id="sun-alt">--</span>
+            </div>
+            <div class="info-box">
+                <strong>🌑 Sombra:</strong><br>
+                Direção: <span id="shadow-dir">--</span><br>
+                Tamanho: <span id="shadow-size">--</span>
+            </div>
+            <div class="info-box">
+                <strong>🏢 Exposição:</strong><br>
+                <span id="exposure">--</span>
+            </div>
+        </div>
+        
+        <div id="compass">
+            <span class="compass-n">N</span><span class="compass-s">S</span>
+            <span class="compass-e">L</span><span class="compass-w">O</span>
+            <div id="compass-arrow"></div>
+        </div>
+        
+        <div id="loading" style="display:none;">
+            <div class="spinner"></div>
+            <div id="loading-text">Carregando...</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+
+<script>
+// ===== CONFIGURAÇÃO =====
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBWoUTqLsG3k6lzW8hL4D9NBSGzGpwIPCY';
+
+// Variáveis globais
+let map, overlay;
+let scene = null, camera = null, renderer = null, building = null, ground = null;
+let sunLight = null, ambientLight = null;
+let lat = -22.9711, lon = -43.1826;
+let isPlaying = false, animInterval;
+let shadowsEnabled = true;
+let projection;
+let mapInitialized = false;
+let threeInitialized = false;
+let currentMarker = null;
+let buildingGroup = null; // Grupo para conter o edifício
+
+const RJ_LOCS = {
+    copacabana: [-22.9711, -43.1826],
+    ipanema: [-22.9838, -43.1923],
+    leblon: [-22.9844, -43.2097],
+    barra: [-23.0131, -43.3054],
+    centro: [-22.9068, -43.1729],
+    flamengo: [-22.9322, -43.1789],
+    botafogo: [-22.9519, -43.1825]
+};
+
+// ===== INICIALIZAÇÃO =====
+window.onload = () => {
+    document.getElementById('date').valueAsDate = new Date();
+    setupEventListeners();
+};
+
+function setupEventListeners() {
+    document.getElementById('height').oninput = e => {
+        document.getElementById('height-val').textContent = e.target.value;
+        updateBuilding();
+    };
+    document.getElementById('width').oninput = e => {
+        document.getElementById('width-val').textContent = e.target.value;
+        updateBuilding();
+    };
+    document.getElementById('depth').oninput = e => {
+        document.getElementById('depth-val').textContent = e.target.value;
+        updateBuilding();
+    };
+    document.getElementById('time').oninput = e => updateTime();
+    document.getElementById('orientation').onchange = updateAll;
+    document.getElementById('date').onchange = updateAll;
+}
+
+// ===== GOOGLE MAPS =====
+function initGoogleMaps() {
+    if (mapInitialized) return;
+    
+    const loading = document.getElementById('loading');
+    loading.style.display = 'block';
+    
+    try {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: lat, lng: lon },
+            zoom: 17,
+            mapTypeId: 'hybrid',
+            tilt: 0,
+            gestureHandling: 'greedy'
+        });
+        
+        currentMarker = new google.maps.Marker({
+            position: { lat: lat, lng: lon },
+            map: map,
+            title: 'Local selecionado',
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 12,
+                fillColor: '#00d4aa',
+                fillOpacity: 1,
+                strokeColor: '#fff',
+                strokeWeight: 3
+            }
+        });
+        
+        // Overlay Three.js
+        overlay = new google.maps.OverlayView();
+        overlay.onAdd = function() { 
+            console.log('✅ Overlay adicionado');
+            initThree(); 
+        };
+        overlay.draw = function() { 
+            syncThreeWithMap(); 
+        };
+        overlay.onRemove = function() {};
+        overlay.setMap(map);
+        
+        map.addListener('center_changed', () => {
+            syncThreeWithMap();
+        });
+        
+        map.addListener('zoom_changed', () => {
+            updateProjection();
+            syncThreeWithMap();
+        });
+        
+        map.addListener('idle', () => {
+            loading.style.display = 'none';
+            mapInitialized = true;
+            console.log('✅ Mapa inicializado');
+            
+            if (threeInitialized) {
+                updateAll();
+            }
+        });
+        
+        mapInitialized = true;
+    } catch (error) {
+        console.error('❌ Erro ao inicializar mapa:', error);
+        loading.style.display = 'none';
+        initFallbackMap();
+    }
+}
+
+function initFallbackMap() {
+    const mapDiv = document.getElementById('map');
+    mapDiv.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #0a0a1a 100%)';
+    mapDiv.innerHTML = `<div style="padding:40px;text-align:center;color:#888;">
+        <h3>🗺️ Mapa Offline</h3>
+        <p>Use os botões de localização rápida</p>
+    </div>`;
+    initThree();
+    updateAll();
+}
+
+// ===== SYNCRONIZAR THREE.JS COM MAPA =====
+function syncThreeWithMap() {
+    if (!overlay || !map || !threeInitialized) return;
+    
+    const proj = overlay.getProjection();
+    if (!proj) return;
+    
+    const canvas = document.getElementById('canvas-overlay');
+    const centerIndicator = document.getElementById('center-indicator');
+    const center = map.getCenter();
+    const centerPoint = proj.fromLatLngToDivPixel(center);
+    
+    if (!centerPoint) return;
+    
+    // Canvas cobre TODO o mapa (já está em 100% via CSS)
+    // Apenas atualizar indicador central
+    if (centerIndicator) {
+        centerIndicator.style.left = centerPoint.x + 'px';
+        centerIndicator.style.top = centerPoint.y + 'px';
+    }
+    
+    // Atualizar posição do edifício para o centro do mapa
+    updateBuildingPosition(center.lat(), center.lng());
+}
+
+// ===== THREE.JS SETUP =====
+function initThree() {
+    const canvas = document.getElementById('canvas-overlay');
+    const container = document.getElementById('map-container');
+    
+    // Canvas cobre 100% do container via CSS
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    
+    console.log(`🎨 Canvas: ${canvas.width}x${canvas.height}`);
+    
+    // Cena
+    scene = new THREE.Scene();
+    scene.background = null;
+    
+    // Câmera — alinhada com o mapa: Norte no topo (Z- = Norte, Z+ = Sul, X+ = Leste)
+    // Posicionada a Sul-Leste em altitude alta para que Norte fique no topo da cena 3D
+    camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 2000);
+    camera.position.set(120, 180, 220);
+    camera.lookAt(0, 0, 0);
+    
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        antialias: true, 
+        alpha: true,
+        preserveDrawingBuffer: true
+    });
+    renderer.setSize(canvas.width, canvas.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Luzes
+    ambientLight = new THREE.AmbientLight(0x405060, 0.5);
+    scene.add(ambientLight);
+    
+    sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(100, 200, 100);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(2048, 2048);
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 1000;
+    sunLight.shadow.camera.left = -300;
+    sunLight.shadow.camera.right = 300;
+    sunLight.shadow.camera.top = 300;
+    sunLight.shadow.camera.bottom = -300;
+    sunLight.shadow.bias = -0.0001;
+    scene.add(sunLight);
+    
+    // Chão (transparente, apenas para sombras)
+    const groundGeo = new THREE.PlaneGeometry(500, 500);
+    const groundMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+    ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(0, -0.1, 0);
+    ground.receiveShadow = true;
+    scene.add(ground);
+    
+    // Grid de referência
+    const grid = new THREE.GridHelper(300, 30, 0x00d4aa, 0x334455);
+    grid.position.set(0, -0.05, 0);
+    scene.add(grid);
+
+    // Setas cardeais no chão (N/S/L/O) para conferir alinhamento com o mapa
+    function makeCardinalArrow(color, rotY, label) {
+        const group = new THREE.Group();
+        // Haste
+        const shaft = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 0.8, 60, 6),
+            new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.7 })
+        );
+        shaft.rotation.z = Math.PI / 2;
+        shaft.position.set(0, 0.5, 0);
+        group.add(shaft);
+        // Ponta
+        const tip = new THREE.Mesh(
+            new THREE.ConeGeometry(3, 12, 6),
+            new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.9 })
+        );
+        tip.rotation.z = -Math.PI / 2;
+        tip.position.set(32, 0.5, 0);
+        group.add(tip);
+        group.rotation.y = rotY;
+        group.position.y = 0;
+        return group;
+    }
+    // Norte = Z-  → rotação Y = 0 aponta X+, precisamos apontar Z- → rotY = -PI/2
+    scene.add(makeCardinalArrow(0xff4444, -Math.PI / 2, 'N'));  // Norte — vermelho
+    scene.add(makeCardinalArrow(0x4444ff,  Math.PI / 2, 'S'));  // Sul   — azul
+    scene.add(makeCardinalArrow(0xffaa00,  0,           'L'));  // Leste — laranja
+    scene.add(makeCardinalArrow(0x44cc44,  Math.PI,     'O'));  // Oeste — verde
+    
+    // Grupo para o edifício
+    buildingGroup = new THREE.Group();
+    scene.add(buildingGroup);
+    
+    // Criar edifício NO CENTRO (0, 0, 0)
+    createBuilding(20, 20, 50);
+    
+    updateProjection();
+    animate();
+    
+    window.addEventListener('resize', () => {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        camera.aspect = canvas.width / canvas.height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvas.width, canvas.height);
+        updateProjection();
+    });
+    
+    threeInitialized = true;
+    console.log('✅ Three.js inicializado - Edifício no centro (0,0,0)');
+    
+    if (mapInitialized) {
+        updateAll();
+    }
+}
+
+// ===== PROJEÇÃO =====
+function updateProjection() {
+    if (!map) return;
+    
+    const zoom = map.getZoom();
+    const metersPerPixel = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+    
+    projection = {
+        metersPerPixel: metersPerPixel,
+        centerLat: lat,
+        centerLng: lon,
+        zoom: zoom
+    };
+    
+    console.log(`📐 Zoom: ${zoom}, ${metersPerPixel.toFixed(2)}m/pixel`);
+}
+
+// Atualizar posição do edifício para coordenadas do mapa
+function updateBuildingPosition(targetLat, targetLng) {
+    if (!buildingGroup || !projection) return;
+    
+    // Converter diferença de coordenadas para metros
+    const metersPerLat = 111000;
+    const metersPerLng = 111000 * Math.cos(projection.centerLat * Math.PI / 180);
+    
+    const dLat = targetLat - projection.centerLat;
+    const dLng = targetLng - projection.centerLng;
+    
+    // Posicionar edifício (invertido porque Three.js Z+ é para trás)
+    buildingGroup.position.x = dLng * metersPerLng;
+    buildingGroup.position.z = -dLat * metersPerLat;
+    
+    // Atualizar centro para próximas cálculos
+    projection.centerLat = targetLat;
+    projection.centerLng = targetLng;
+}
+
+// ===== EDIFÍCIO 3D =====
+function createBuilding(width, depth, height) {
+    if (buildingGroup) {
+        while(buildingGroup.children.length > 0){ 
+            buildingGroup.remove(buildingGroup.children[0]); 
+        }
+    }
+    
+    // Geometria do edifício
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    
+    const materials = [
+        new THREE.MeshLambertMaterial({ color: 0x667788, transparent: true, opacity: 0.9 }),
+        new THREE.MeshLambertMaterial({ color: 0x778899, transparent: true, opacity: 0.9 }),
+        new THREE.MeshLambertMaterial({ color: 0x44aacc, transparent: true, opacity: 0.95 }),
+        new THREE.MeshLambertMaterial({ color: 0x335577, transparent: true, opacity: 0.9 }),
+        new THREE.MeshLambertMaterial({ color: 0x00d4aa, transparent: true, opacity: 0.95 }),
+        new THREE.MeshLambertMaterial({ color: 0x556677, transparent: true, opacity: 0.8 })
+    ];
+    
+    building = new THREE.Mesh(geometry, materials);
+    building.position.y = height / 2;
+    building.castShadow = true;
+    building.receiveShadow = true;
+    building.userData = { width, depth, height };
+    
+    buildingGroup.add(building);
+    
+    // Marcador no topo (antena)
+    const markerGeo = new THREE.ConeGeometry(2, 8, 8);
+    const markerMat = new THREE.MeshLambertMaterial({ 
+        color: 0xff4444, 
+        emissive: 0x440000,
+        transparent: true,
+        opacity: 0.9
+    });
+    const marker = new THREE.Mesh(markerGeo, markerMat);
+    marker.position.y = height + 4;
+    marker.rotation.x = Math.PI;
+    buildingGroup.add(marker);
+    
+    updateBuilding();
+    console.log(`🏢 Edifício criado no centro: ${width}x${depth}x${height}m`);
+}
+
+function updateBuilding() {
+    if (!building) return;
+    
+    const width = parseFloat(document.getElementById('width').value);
+    const depth = parseFloat(document.getElementById('depth').value);
+    const height = parseFloat(document.getElementById('height').value);
+    const orientation = parseFloat(document.getElementById('orientation').value);
+    
+    building.scale.set(
+        width / building.userData.width,
+        height / building.userData.height,
+        depth / building.userData.depth
+    );
+    
+    // Rotação Y positiva = sentido horário no Three.js visto de cima
+    // Azimute 0° (Norte) = frente do prédio para Z- → sem rotação necessária
+    // Azimute 90° (Leste) = frente para X+ → rotation.y = -PI/2
+    building.rotation.y = -orientation * Math.PI / 180;
+    building.userData = { width, depth, height };
+}
+
+// ===== SOL E SOMBRAS =====
+function updateSun() {
+    if (!threeInitialized || !sunLight || !scene || !camera || !renderer) {
+        return;
+    }
+    
+    const dateStr = document.getElementById('date').value;
+    const timeVal = parseInt(document.getElementById('time').value);
+    const hours = Math.floor(timeVal / 60);
+    const minutes = timeVal % 60;
+    
+    const date = new Date(dateStr);
+    date.setHours(hours, minutes, 0, 0);
+    
+    const sun = SunCalc.getPosition(date, lat, lon);
+    const azimuth = (sun.azimuth * 180 / Math.PI) + 180;
+    const altitude = sun.altitude * 180 / Math.PI;
+    
+    const azRad = azimuth * Math.PI / 180;
+    const altRad = altitude * Math.PI / 180;
+    const distance = 500;
+    
+    // Mapeamento de azimute para Three.js:
+    // Azimute 0° = Norte → X=0,  Z=-dist  (Z- = Norte)
+    // Azimute 90° = Leste → X=+dist, Z=0  (X+ = Leste)
+    // Fórmula: x = sin(az), z = -cos(az)
+    sunLight.position.x =  Math.sin(azRad) * Math.cos(altRad) * distance;
+    sunLight.position.y =  Math.sin(altRad) * distance;
+    sunLight.position.z = -Math.cos(azRad) * Math.cos(altRad) * distance;
+    
+    sunLight.shadow.camera.updateProjectionMatrix();
+    
+    updateSolarUI(azimuth, altitude, date);
+    renderer.render(scene, camera);
+}
+
+function updateSolarUI(azimuth, altitude) {
+    document.getElementById('az-val').textContent = Math.round(azimuth) + '°';
+    document.getElementById('alt-val').textContent = Math.max(0, Math.round(altitude)) + '°';
+    
+    document.getElementById('compass-arrow').style.transform = `rotate(${azimuth}deg)`;
+    document.getElementById('sun-dir').textContent = getDirectionText(azimuth);
+    document.getElementById('sun-alt').textContent = Math.round(altitude) + '°';
+    
+    const times = SunCalc.getTimes(new Date(document.getElementById('date').value), lat, lon);
+    document.getElementById('rise-val').textContent = formatTime(times.sunrise);
+    document.getElementById('set-val').textContent = formatTime(times.sunset);
+    
+    updateSunStatus(azimuth, altitude);
+    updateShadowInfo(azimuth, altitude);
+}
+
+function updateShadowInfo(azimuth, altitude) {
+    if (altitude <= 0) {
+        document.getElementById('shadow-dir').textContent = 'Noite';
+        document.getElementById('shadow-size').textContent = '-';
+        return;
+    }
+    
+    const shadowAz = (azimuth + 180) % 360;
+    document.getElementById('shadow-dir').textContent = getDirectionText(shadowAz);
+    
+    const shadowFactor = altitude > 89 ? 0.1 : 1 / Math.tan(altitude * Math.PI / 180);
+    const sizeText = shadowFactor > 3 ? 'Longa' : shadowFactor > 1 ? 'Média' : 'Curta';
+    document.getElementById('shadow-size').textContent = `${sizeText} (${shadowFactor.toFixed(1)}x)`;
+}
+
+function updateSunStatus(azimuth, altitude) {
+    const orientation = parseFloat(document.getElementById('orientation').value);
+    const el = document.getElementById('sun-info');
+    
+    if (!threeInitialized) {
+        el.className = 'status warn';
+        el.innerHTML = '⏳ Carregando...';
+        return;
+    }
+    
+    if (altitude <= 0) {
+        el.className = 'status';
+        el.innerHTML = '🌙 Noite - Sem luz solar';
+        return;
+    }
+    
+    let relAz = azimuth - orientation;
+    while (relAz < -180) relAz += 360;
+    while (relAz > 180) relAz -= 360;
+    
+    let emoji = '☀️', text = '', exposure = '';
+    
+    if (Math.abs(relAz) < 40) {
+        emoji = '🔥'; text = 'Sol na FRENTE'; exposure = 'ALTA';
+    } else if (relAz > 40 && relAz < 130) {
+        emoji = '🌅'; text = 'Sol na ESQUERDA'; exposure = 'MÉDIA';
+    } else if (relAz < -40 && relAz > -130) {
+        emoji = '🌇'; text = 'Sol na DIREITA'; exposure = 'MÉDIA';
+    } else {
+        emoji = '🏢'; text = 'Sol no FUNDO'; exposure = 'BAIXA';
+    }
+    
+    if (altitude > 60) text += ' ☀️';
+    else if (altitude < 25) text += ' 🌅';
+    
+    el.className = 'status ok';
+    el.innerHTML = `${emoji} ${text}<br><small style="color:#888">Exposição: ${exposure}</small>`;
+    
+    const color = exposure === 'ALTA' ? '#ff6b6b' : exposure === 'BAIXA' ? '#6b8cff' : '#ffa502';
+    document.getElementById('exposure').innerHTML = `<span style="color:${color}">${exposure}</span>`;
+}
+
+// ===== UTILITÁRIOS =====
+function getDirectionText(az) {
+    const dirs = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
+    const idx = Math.round(az / 45) % 8;
+    return dirs[idx] + ` (${Math.round(az)}°)`;
+}
+
+function formatTime(d) {
+    if (!d) return '--:--';
+    return d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+function updateTime() {
+    const val = document.getElementById('time').value;
+    const h = Math.floor(val/60), m = val%60;
+    document.getElementById('time-display').textContent = 
+        `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+    updateSun();
+}
+
+// ===== CONTROLES =====
+function togglePlay() {
+    isPlaying = !isPlaying;
+    const btn = document.getElementById('play-btn');
+    
+    if (isPlaying) {
+        btn.textContent = '⏸ Pausar';
+        btn.style.background = '#ff6b6b';
+        animateDay();
+    } else {
+        btn.textContent = '▶ Animar dia';
+        btn.style.background = '#00d4aa';
+        clearInterval(animInterval);
+    }
+}
+
+function animateDay() {
+    if (!isPlaying) return;
+    
+    const slider = document.getElementById('time');
+    let val = parseInt(slider.value) + 10;
+    
+    if (val > 1200) {
+        val = 360;
+        isPlaying = false;
+        document.getElementById('play-btn').textContent = '▶ Animar dia';
+        document.getElementById('play-btn').style.background = '#00d4aa';
+    }
+    
+    slider.value = val;
+    updateTime();
+    animInterval = setTimeout(animateDay, 100);
+}
+
+function toggleShadows() {
+    shadowsEnabled = !shadowsEnabled;
+    if (sunLight) sunLight.castShadow = shadowsEnabled;
+    if (ground) ground.material.opacity = shadowsEnabled ? 0.35 : 0;
+    document.getElementById('shadow-btn').textContent = 
+        `🌑 Sombras: ${shadowsEnabled ? 'ATIVADAS' : 'DESATIVADAS'}`;
+}
+
+function updateCamera() {
+    if (!camera) return;
+    
+    const angle = document.getElementById('camera-angle').value;
+    
+    switch(angle) {
+        case 'top':
+            // Vista de cima — Norte no topo
+            camera.position.set(0, 300, 0.1);
+            break;
+        case 'iso':
+            // Isométrica — câmera a Sul-Leste, Norte fica no topo-esquerdo (igual ao mapa padrão)
+            camera.position.set(120, 180, 220);
+            break;
+        case 'side':
+            // Lateral Leste → olha para Oeste
+            camera.position.set(280, 50, 0);
+            break;
+        case 'street':
+            // Nível da rua ao Sul → olha para Norte
+            camera.position.set(0, 25, 100);
+            break;
+    }
+    camera.lookAt(buildingGroup ? buildingGroup.position : new THREE.Vector3(0, 0, 0));
+    camera.updateProjectionMatrix();
+}
+
+function resetView() {
+    document.getElementById('height').value = 50;
+    document.getElementById('width').value = 20;
+    document.getElementById('depth').value = 20;
+    document.getElementById('time').value = 720;
+    document.getElementById('orientation').value = 90;
+    document.getElementById('camera-angle').value = 'iso';
+    
+    document.getElementById('height-val').textContent = '50';
+    document.getElementById('width-val').textContent = '20';
+    document.getElementById('depth-val').textContent = '20';
+    
+    updateBuilding();
+    updateCamera();
+    updateTime();
+}
+
+// ===== BUSCA DE ENDEREÇO =====
+async function searchAddress() {
+    const address = document.getElementById('address').value.trim();
+    const status = document.getElementById('loc-status');
+    const loading = document.getElementById('loading');
+    
+    if (!address) {
+        status.className = 'status err';
+        status.textContent = '❌ Digite um endereço';
+        return;
+    }
+    
+    status.className = '';
+    status.textContent = '';
+    loading.style.display = 'block';
+    document.getElementById('loading-text').textContent = 'Buscando...';
+    
+    const addressLower = address.toLowerCase();
+    for (const [key, coords] of Object.entries(RJ_LOCS)) {
+        if (addressLower.includes(key)) {
+            await gotoLocation(coords[0], coords[1], key.charAt(0).toUpperCase() + key.slice(1));
+            status.className = 'status ok';
+            status.textContent = `✅ ${key.charAt(0).toUpperCase() + key.slice(1)}`;
+            loading.style.display = 'none';
+            return;
+        }
+    }
+    
+    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        try {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 
+                address: address + ', Rio de Janeiro, Brasil',
+                componentRestrictions: { country: 'BR' }
+            }, (results, geocodeStatus) => {
+                loading.style.display = 'none';
+                
+                if (geocodeStatus === 'OK' && results[0]) {
+                    const result = results[0];
+                    const location = result.geometry.location;
+                    
+                    lat = location.lat();
+                    lon = location.lng();
+                    
+                    if (map) {
+                        const newCenter = { lat: lat, lng: lon };
+                        map.setCenter(newCenter);
+                        map.setZoom(17);
+                        
+                        if (currentMarker) {
+                            currentMarker.setPosition(newCenter);
+                        } else {
+                            currentMarker = new google.maps.Marker({
+                                position: newCenter,
+                                map: map,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 12,
+                                    fillColor: '#00d4aa',
+                                    fillOpacity: 1,
+                                    strokeColor: '#fff',
+                                    strokeWeight: 3
+                                }
+                            });
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        syncThreeWithMap();
+                        updateProjection();
+                        updateAll();
+                    }, 200);
+                    
+                    status.className = 'status ok';
+                    status.textContent = `✅ ${result.formatted_address.split(',')[0]}`;
+                    
+                } else if (geocodeStatus === 'ZERO_RESULTS') {
+                    status.className = 'status err';
+                    status.textContent = '❌ Não encontrado. Tente ser mais específico.';
+                } else {
+                    status.className = 'status err';
+                    status.textContent = '❌ Erro: ' + geocodeStatus;
+                }
+            });
+        } catch (error) {
+            console.error('Erro na busca:', error);
+            loading.style.display = 'none';
+            status.className = 'status err';
+            status.textContent = '❌ Erro ao buscar';
+        }
+    } else {
+        loading.style.display = 'none';
+        status.className = 'status warn';
+        status.textContent = '⚠️ API não carregada. Use botões rápidos.';
+    }
+}
+
+async function gotoLocation(newLat, newLon, name) {
+    lat = newLat;
+    lon = newLon;
+    
+    if (map) {
+        const newCenter = { lat: lat, lng: lon };
+        map.setCenter(newCenter);
+        map.setZoom(17);
+        
+        if (currentMarker) {
+            currentMarker.setPosition(newCenter);
+        }
+        
+        setTimeout(() => {
+            syncThreeWithMap();
+            updateProjection();
+        }, 200);
+    }
+    
+    document.getElementById('address').value = name + ', Rio de Janeiro';
+    updateAll();
+}
+
+async function useCurrent() {
+    if (!navigator.geolocation) {
+        document.getElementById('loc-status').className = 'status err';
+        document.getElementById('loc-status').textContent = '❌ Geolocalização não suportada';
+        return;
+    }
+    
+    const loading = document.getElementById('loading');
+    loading.style.display = 'block';
+    document.getElementById('loading-text').textContent = 'Obtendo posição...';
+    
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            
+            if (map) {
+                const newCenter = { lat: lat, lng: lon };
+                map.setCenter(newCenter);
+                map.setZoom(17);
+                if (currentMarker) currentMarker.setPosition(newCenter);
+                
+                setTimeout(() => {
+                    syncThreeWithMap();
+                    updateProjection();
+                }, 200);
+            }
+            
+            document.getElementById('address').value = 'Minha localização';
+            updateAll();
+            
+            document.getElementById('loc-status').className = 'status ok';
+            document.getElementById('loc-status').textContent = '✅ Posição atual';
+            loading.style.display = 'none';
+        },
+        err => {
+            document.getElementById('loc-status').className = 'status err';
+            document.getElementById('loc-status').textContent = '❌ Erro: ' + err.message;
+            loading.style.display = 'none';
+        }
+    );
+}
+
+function updateAll() {
+    if (!threeInitialized) {
+        console.log('⏳ Aguardando Three.js...');
+        return;
+    }
+    updateProjection();
+    updateBuilding();
+    updateSun();
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+// ===== CARREGAR GOOGLE MAPS API =====
+function loadGoogleMaps() {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=onGoogleMapsLoaded&libraries=geometry,places`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+        console.error('❌ Erro ao carregar Google Maps API');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('loc-status').className = 'status err';
+        document.getElementById('loc-status').textContent = '❌ Erro ao carregar mapa';
+        initFallbackMap();
+    };
+    document.head.appendChild(script);
+}
+
+function onGoogleMapsLoaded() {
+    console.log('✅ Google Maps API carregada');
+    initAutocomplete();
+    if (typeof initGoogleMaps === 'function') {
+        initGoogleMaps();
+    }
+}
+
+function initAutocomplete() {
+    const input = document.getElementById('address');
+    if (!input || !google.maps.places) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        types: ['geocode', 'establishment'],
+        fields: ['geometry', 'formatted_address', 'name']
+    });
+
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+
+        lat = place.geometry.location.lat();
+        lon = place.geometry.location.lng();
+
+        const displayName = place.name || place.formatted_address.split(',')[0];
+        input.value = displayName;
+
+        const status = document.getElementById('loc-status');
+        status.className = 'status ok';
+        status.textContent = `✅ ${displayName}`;
+
+        if (map) {
+            const newCenter = { lat, lng: lon };
+            map.setCenter(newCenter);
+            map.setZoom(17);
+            if (currentMarker) {
+                currentMarker.setPosition(newCenter);
+            } else {
+                currentMarker = new google.maps.Marker({
+                    position: newCenter,
+                    map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: '#00d4aa',
+                        fillOpacity: 1,
+                        strokeColor: '#fff',
+                        strokeWeight: 3
+                    }
+                });
+            }
+            setTimeout(() => {
+                syncThreeWithMap();
+                updateProjection();
+                updateAll();
+            }, 200);
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+} else {
+    loadGoogleMaps();
+}
+</script>
+
+</body>
+</html>

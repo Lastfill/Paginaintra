@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Financeira Profissional</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex;
+            justify-content: center;
+            algn-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #213041;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%; 
+            max-width: 450px;
+            border: 1px solid #e2e8f0;
+        }
+        h2 {
+            color: #1e293b;
+            margin: 0 0 5px 0;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        h3 {
+            color: #64748b;
+            margin: 0 0 20px 0;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: normal;
+            line-height: 1.4;
+        }
+        .section-divider {
+            border-top: 2px dashed #e2e8f0;
+            margin: 30px 0;
+            position: relative;
+        }
+        .section-divider span {
+            position: absolute;
+            top: -12px; left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 0 10px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.85rem;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            background-color: #f0f7ff;
+        }
+        .results {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: #334155;
+        }
+        .row b {
+            color: #0f172a;
+        }
+        .highlight-red {
+            color: #e11d48 !important;
+        }
+        .highlight-blue {
+            color: #2563eb !important;
+        }
+        .total-row {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding-top: 8px;
+            border-top: 1px solid #cbd5e1;
+            margin-top: 8px;
+        }
+        .success {
+            color: #059669 !important;
+        }
+        .info-text {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Precificação Reversa</h2>
+    <h3>Calcular o valor de venda, quando o proprietário quer um valor específico em mãos.</h3>
+    
+    <div class="input-group">
+        <label>Valor na mão do proprietário (R$)</label>
+        <input type="number" id="valorLiquido" placeholder="Ex: 1000" oninput="calcularReverso()">
+    </div>
+
+    <div class="input-group">
+        <label>Comissão aplicada (%)</label>
+        <input type="number" id="taxaPercentual" value="5" oninput="calcularReverso()">
+    </div>
+
+    <div class="results">
+        <div class="row">
+            <span>Valor da comissão:</span>
+            <b id="resTaxaMonetaria" class="highlight-red">R$ 0,00</b>
+        </div>
+        <div class="row total-row success">
+            <span>Preço de Venda:</span>
+            <b id="resPrecoVenda">R$ 0,00</b>
+        </div>
+    </div>
+
+    <div class="section-divider"><span>OU</span></div>
+
+    <h2>Porcentagem de Valor</h2>
+    <h3>Descubra o valor da comissão.</h3>
+
+    <div class="input-group">
+        <label>Valor Inicial (R$)</label>
+        <input type="number" id="valorTotalSimples" placeholder="Ex: 1000" oninput="calcularSimples()">
+    </div>
+
+    <div class="input-group">
+        <label>Comissão (%)</label>
+        <input type="number" id="porcentagemSimples" placeholder="Ex: 10" oninput="calcularSimples()">
+    </div>
+
+    <div class="results">
+        <div class="row">
+            <span>Valor da Comissão(-):</span>
+            <b id="resValorPorcentagem" class="highlight-red">R$ 0,00</b>
+        </div>
+        <div class="row total-row">
+            <span>Valor do proprietário</span>
+            <b id="resSobraTotal" class="highlight-blue">R$ 0,00</b>
+        </div>
+    </div>
+
+    <p class="info-text">Atualização automática em tempo real.</p>
+</div>
+
+<script>
+    const formatar = (val) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Lógica da Precificação Reversa (Mark-up)
+    function calcularReverso() {
+        const liquido = parseFloat(document.getElementById('valorLiquido').value) || 0;
+        const porcentagem = parseFloat(document.getElementById('taxaPercentual').value) || 0;
+        
+        if (porcentagem >= 100) {
+            document.getElementById('resPrecoVenda').innerText = "Taxa Inválida";
+            return;
+        }
+
+        const fator = (100 - porcentagem) / 100;
+        const bruto = liquido / fator;
+        const taxaMonetaria = bruto - liquido;
+
+        document.getElementById('resPrecoVenda').innerText = formatar(bruto);
+        document.getElementById('resTaxaMonetaria').innerText = `- ${formatar(taxaMonetaria)}`;
+    }
+
+    // Lógica da Porcentagem com Subtração
+    function calcularSimples() {
+        const total = parseFloat(document.getElementById('valorTotalSimples').value) || 0;
+        const porcentagem = parseFloat(document.getElementById('porcentagemSimples').value) || 0;
+
+        const valorDaPorcentagem = total * (porcentagem / 100);
+        const valorFinalComDesconto = total - valorDaPorcentagem;
+
+        document.getElementById('resValorPorcentagem').innerText = `- ${formatar(valorDaPorcentagem)}`;
+        document.getElementById('resSobraTotal').innerText = formatar(valorFinalComDesconto);
+    }
+</script>
+
+</body>
+</html>

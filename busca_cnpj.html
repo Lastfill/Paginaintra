@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de CNPJ</title>
+    <!-- Importação do Tailwind CSS para estilização utilitária rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca HTML2PDF para exportação profissional -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* --- ESTILIZAÇÃO E DIRETRIZES BASEADAS NO STYLE.CSS --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .brand-border {
+            border-bottom: 3px solid #fc4c02;
+        }
+
+        .btn-primary {
+            background-color: #213546;
+            color: #fff;
+            font-weight: 700;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .btn-primary:hover {
+            background-color: #1a2a38;
+            transform: translateY(-1px);
+        }
+
+        /* Ajustes específicos para impressão perfeita em PDF */
+        .pdf-page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased pb-12">
+
+    <!-- NAVBAR CORPORATIVA -->
+    <nav class="bg-[#213546] text-white px-6 py-4 shadow-md">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">⚡</span>
+                <span class="font-bold text-lg tracking-wider uppercase">CNPJ ENGINE</span>
+            </div>
+            <span class="text-xs font-mono opacity-60 hidden sm:inline-block">Status: API Ativa</span>
+        </div>
+    </nav>
+
+    <!-- CONTAINER PRINCIPAL -->
+    <div class="max-w-5xl mx-auto pt-12 px-4 space-y-8">
+        
+        <!-- HEADER / ÁREA DE BUSCA -->
+        <header class="text-center space-y-4">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-[#213546] tracking-tight">
+                Motor de Consulta Cadastral
+            </h1>
+            <p class="text-sm text-slate-600 max-w-xl mx-auto">
+                Insira o número do CNPJ abaixo para realizar a varredura recursiva em tempo real com mapeamento de dados completo.
+            </p>
+
+            <!-- PAINEL DE ENTRADA -->
+            <div class="glass-card max-w-xl mx-auto mt-8 text-left p-6">
+                <h3 class="text-base font-bold text-[#213546] brand-border pb-2 mb-4">
+                    Painel de Entrada
+                </h3>
+                <form id="cnpjForm" class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Digite o CNPJ</label>
+                        <input
+                            type="text"
+                            id="cnpjInput"
+                            placeholder="00.000.000/0000-00"
+                            maxlength="18"
+                            class="w-full px-4 py-3 text-base rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#213546] font-mono tracking-widest text-center"
+                        />
+                    </div>
+                    <button type="submit" id="btnSubmit" class="w-full py-3.5 px-4 rounded-lg btn-primary font-bold uppercase tracking-wider text-xs">
+                        Consultar Dados
+                    </button>
+                </form>
+
+                <!-- Feedback de Erro -->
+                <div id="errorBox" class="mt-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-xs font-semibold hidden"></div>
+            </div>
+        </header>
+
+        <!-- TOOLBAR DE AÇÕES (GERAR PDF) -->
+        <div id="actionsToolbar" class="max-w-5xl mx-auto flex justify-end hidden">
+            <button onclick="exportToPDF()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 px-5 rounded-lg shadow-md transition-all">
+                <span>📄</span> Gerar Relatório PDF
+            </button>
+        </div>
+
+        <!-- ESPAÇO RESERVADO PARA OS RESULTADOS (REORGANIZADO) -->
+        <main id="resultsWrapper" class="space-y-6 hidden"></main>
+
+    </div>
+
+    <!-- LÓGICA DO PROJETO EM JAVASCRIPT NATIVO -->
+    <script>
+        const cnpjInput = document.getElementById('cnpjInput');
+        const cnpjForm = document.getElementById('cnpjForm');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const errorBox = document.getElementById('errorBox');
+        const resultsWrapper = document.getElementById('resultsWrapper');
+        const actionsToolbar = document.getElementById('actionsToolbar');
+
+        // --- MÁSCARA EM TEMPO REAL ---
+        cnpjInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 14) value = value.slice(0, 14);
+            
+            value = value
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                .replace(/(\d{4})(\d)/, '$1-$2');
+                
+            e.target.value = value;
+        });
+
+        // --- INTERPRETADORES E FORMATAÇÃO ---
+        const formatCurrency = (val) => isNaN(val) || val === null ? '-' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+        const formatCEP = (val) => val ? val.replace(/\D/g, '').replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9) : '-';
+        const formatDate = (val) => {
+            if (!val) return '-';
+            if (val.includes('-')) {
+                const [year, month, day] = val.split('-');
+                return `${day}/${month}/${year}`;
+            }
+            return val;
+        };
+
+        const formatValue = (key, value) => {
+            if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
+            if (value === null || value === undefined || value === '') return '-';
+            
+            const lowerKey = key.toLowerCase();
+            if (lowerKey.includes('capital_social')) return formatCurrency(value);
+            if (lowerKey.includes('data')) return formatDate(value);
+            if (lowerKey.includes('cep')) return formatCEP(value);
+            return String(value);
+        };
+
+        const countFilledFields = (obj) => {
+            let count = 0;
+            if (!obj || typeof obj !== 'object') return 0;
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    const val = obj[key];
+                    if (val !== null && val !== undefined && val !== '') {
+                        if (Array.isArray(val)) {
+                            count += val.reduce((acc, curr) => acc + (typeof curr === 'object' ? countFilledFields(curr) : 1), 0);
+                        } else if (typeof val === 'object') {
+                            count += countFilledFields(val);
+                        } else {
+                            count++;
+                        }
+                    }
+                }
+            }
+            return count;
+        };
+
+        // --- RENDERIZADOR DINÂMICO RECURSIVO ---
+        function renderDynamicData(data, level = 0) {
+            if (!data || typeof data !== 'object') return '';
+            let html = `<div class="space-y-2.5 ${level > 0 ? 'ml-3 border-l-2 border-slate-200 pl-3 my-1.5' : ''}">`;
+
+            for (const [key, value] of Object.entries(data)) {
+                if (value === null || value === undefined || value === '') continue;
+                
+                // Pular chaves redundantes já exibidas no painel master
+                const skipKeys = ['razao_social', 'nome_fantasia', 'capital_social', 'situacao_cadastral', 'atividade_principal', 'logradouro', 'numero', 'bairro', 'cep', 'inscricoes_estaduais'];
+                if (level === 0 && skipKeys.some(sk => key.toLowerCase().includes(sk))) continue;
+
+                const formattedKey = key.replace(/_/g, ' ').toUpperCase();
+
+                if (Array.isArray(value)) {
+                    if (value.length === 0) continue;
+                    html += `
+                        <div class="bg-slate-50/70 p-3 rounded-lg border border-slate-200/60">
+                            <span class="text-[10px] font-bold text-slate-500 tracking-wider block mb-2">${formattedKey} (${value.length})</span>
+                            <div class="space-y-2">
+                    `;
+                    value.forEach(item => {
+                        html += `<div class="bg-white p-2.5 rounded border border-slate-100 shadow-sm">`;
+                        if (typeof item === 'object') {
+                            html += renderDynamicData(item, level + 1);
+                        } else {
+                            html += `<span class="text-xs text-slate-700 font-medium">${formatValue(key, item)}</span>`;
+                        }
+                        html += `</div>`;
+                    });
+                    html += `</div></div>`;
+                } else if (typeof value === 'object') {
+                    html += `
+                        <div class="bg-slate-50/70 p-3 rounded-lg border border-slate-200/60">
+                            <span class="text-[10px] font-bold text-slate-500 tracking-wider block mb-1">${formattedKey}</span>
+                            ${renderDynamicData(value, level + 1)}
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-100 last:border-0 gap-1">
+                            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-tight">${formattedKey}</span>
+                            <span class="text-xs font-semibold text-[#213546] bg-white px-2 py-0.5 rounded break-all text-right border border-slate-50">
+                                ${formatValue(key, value)}
+                            </span>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        // --- SUBMIT DA BUSCA ---
+        cnpjForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cleanCNPJ = cnpjInput.value.replace(/\D/g, '');
+
+            if (cleanCNPJ.length !== 14) {
+                showError('O CNPJ deve conter exatamente 14 dígitos.');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch(`https://publica.cnpj.ws/cnpj/${cleanCNPJ}`);
+                if (!response.ok) {
+                    if (response.status === 404) throw new Error('CNPJ não encontrado na base de dados.');
+                    if (response.status === 429) throw new Error('Limite de requisições atingido. Aguarde um momento.');
+                    throw new Error('Erro ao consultar o CNPJ. Tente novamente.');
+                }
+                const data = await response.json();
+                renderLayout(data);
+            } catch (err) {
+                showError(err.message || 'Erro inesperado.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerText = 'Processando Varredura...';
+                errorBox.classList.add('hidden');
+                resultsWrapper.classList.add('hidden');
+                actionsToolbar.classList.add('hidden');
+            } else {
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = 'Consultar Dados';
+            }
+        }
+
+        function showError(msg) {
+            errorBox.innerText = `⚠️ ${msg}`;
+            errorBox.classList.remove('hidden');
+        }
+
+        // --- NOVO LAYOUT REORGANIZADO EM 2 COLUNAS ASSIMÉTRICAS ---
+        function renderLayout(companyData) {
+            let ieBadges = '<span class="text-xs text-slate-400 font-medium">-</span>';
+            if (companyData.estabelecimento?.inscricoes_estaduais?.length > 0) {
+                ieBadges = companyData.estabelecimento.inscricoes_estaduais.map(ie => `
+                    <span class="text-[10px] font-mono font-bold bg-[#213546]/10 text-[#213546] px-2 py-0.5 rounded border border-[#213546]/20">
+                        ${ie.estado.sigla}: ${ie.inscricao_estadual}
+                    </span>
+                `).join('');
+            }
+
+            const filledCount = countFilledFields(companyData);
+            const dynamicFieldsHtml = renderDynamicData(companyData);
+
+            resultsWrapper.innerHTML = `
+                <!-- IDENTIFICAÇÃO MASTER (FULL WIDTH) -->
+                <div class="glass-card p-6 border-l-4 border-[#fc4c02]">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Razão Social</span>
+                            <h2 class="text-2xl font-black text-[#213546] tracking-tight uppercase">${companyData.razao_social || '-'}</h2>
+                            <p class="text-sm font-semibold text-slate-500 mt-1">Nome Fantasia: ${companyData.estabelecimento?.nome_fantasia || '-'}</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                                ${companyData.estabelecimento?.situacao_cadastral || '-'}
+                            </span>
+                            <span class="px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200 shadow-sm">
+                                ${formatCurrency(companyData.capital_social)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRID ASSIMÉTRICO DE EXIBIÇÃO -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    
+                    <!-- COLUNA ESQUERDA: NÚCLEO CADASTRAL E CONTATO (1 PARTE) -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <section class="glass-card p-5 bg-white/95">
+                            <h3 class="text-sm font-bold text-[#213546] brand-border pb-1.5 mb-4 uppercase tracking-wider">📍 Localização</h3>
+                            <div class="space-y-3.5">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-tight block">Endereço Estruturado</label>
+                                    <p class="text-xs font-bold text-slate-800 mt-0.5">
+                                        ${companyData.estabelecimento?.tipo_logradouro || ''} ${companyData.estabelecimento?.logradouro || ''}, ${companyData.estabelecimento?.numero || ''}
+                                    </p>
+                                    <p class="text-xs font-medium text-slate-600">
+                                        ${companyData.estabelecimento?.bairro || ''} — ${companyData.estabelecimento?.cidade?.nome || ''}/${companyData.estabelecimento?.estado?.sigla || ''}
+                                    </p>
+                                    <span class="inline-block mt-1 text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">CEP: ${formatCEP(companyData.estabelecimento?.cep)}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="glass-card p-5 bg-white/95">
+                            <h3 class="text-sm font-bold text-[#213546] brand-border pb-1.5 mb-4 uppercase tracking-wider">📞 Canais de Contato</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-tight block">Telefones</label>
+                                    <p class="text-xs font-bold text-slate-700 mt-0.5">(${companyData.estabelecimento?.ddd1 || ''}) ${companyData.estabelecimento?.telefone1 || '-'}</p>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-tight block">E-mail Corporativo</label>
+                                    <p class="text-xs font-bold text-slate-700 truncate mt-0.5">${companyData.estabelecimento?.email || '-'}</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="glass-card p-5 bg-white/95">
+                            <h3 class="text-sm font-bold text-[#213546] brand-border pb-1.5 mb-4 uppercase tracking-wider">Government IDs</h3>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-tight block mb-1.5">Inscrições Estaduais Ativas</label>
+                                <div class="flex flex-wrap gap-1.5">${ieBadges}</div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- COLUNA DIREITA: ESTRUTURA PROFUNDA E CNAE (2 PARTES) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <section class="glass-card p-6 bg-white/95">
+                            <h3 class="text-sm font-bold text-[#213546] brand-border pb-1.5 mb-3 uppercase tracking-wider">🛠️ Core Business (CNAE)</h3>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-tight block">Atividade Econômica Principal</label>
+                                <p class="text-xs font-semibold text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200/60 mt-1">
+                                    <strong class="text-[#213546] font-mono text-sm block mb-1">${companyData.estabelecimento?.atividade_principal?.id || ''}</strong>
+                                    ${companyData.estabelecimento?.atividade_principal?.descricao || '-'}
+                                </p>
+                            </div>
+                        </section>
+
+                        <section class="glass-card p-6 bg-white/95">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-sm font-bold text-[#213546] brand-border pb-1.5 uppercase tracking-wider">🧬 Sub-estruturas e Mapeamento Nativo</h3>
+                                <span class="text-[10px] font-bold text-[#fc4c02] bg-[#fc4c02]/10 px-2 py-0.5 rounded-full">${filledCount} Nós Preenchidos</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-4">Varredura automática e isolamento de dependências/sócios no payload JSON.</p>
+                            <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 shadow-inner">
+                                ${dynamicFieldsHtml || '<p class="text-xs text-slate-400 italic">Nenhuma sub-estrutura adicional identificada.</p>'}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- INSPEÇÃO DE RAW PAYLOAD (OCULTADO POR PADRÃO NO PDF) -->
+                <section data-html2pdf-ignore="true" class="bg-[#213546] rounded-[18px] text-slate-200 overflow-hidden shadow-lg border border-slate-800">
+                    <div class="px-6 py-4 bg-slate-950 flex flex-wrap justify-between items-center gap-3 border-b border-slate-800">
+                        <button onclick="toggleRawJson()" class="text-xs font-bold text-slate-300 hover:text-white uppercase tracking-wider">
+                            ▶ Inspecionar JSON Completo (Raw Object)
+                        </button>
+                        <button onclick="copyRawJson()" id="btnCopy" class="px-3 py-1.5 text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-md border border-slate-700 transition-all">
+                            📋 Copiar Objeto JSON
+                        </button>
+                    </div>
+                    <div id="rawJsonBox" class="p-5 bg-slate-950/80 font-mono text-xs overflow-x-auto max-h-[450px] leading-relaxed text-emerald-400 hidden">
+                        <pre>${JSON.stringify(companyData, null, 2)}</pre>
+                    </div>
+                </section>
+            `;
+            
+            resultsWrapper.classList.remove('hidden');
+            actionsToolbar.classList.remove('hidden');
+            resultsWrapper.scrollIntoView({ behavior: 'smooth' });
+            
+            window.currentCompanyData = companyData;
+        }
+
+        window.toggleRawJson = () => {
+            const box = document.getElementById('rawJsonBox');
+            box.classList.toggle('hidden');
+        };
+
+        window.copyRawJson = () => {
+            if (!window.currentCompanyData) return;
+            navigator.clipboard.writeText(JSON.stringify(window.currentCompanyData, null, 2));
+            const btn = document.getElementById('btnCopy');
+            btn.innerText = '✓ Copiado!';
+            setTimeout(() => btn.innerText = '📋 Copiar Objeto JSON', 2000);
+        };
+
+        // --- SISTEMA EXCLUSIVO DE EXPORTAÇÃO PDF ---
+        window.exportToPDF = () => {
+            const targetElement = document.getElementById('resultsWrapper');
+            if (!targetElement || !window.currentCompanyData) return;
+
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     `Relatorio-CNPJ-${window.currentCompanyData.razao_social || 'Consulta'}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Executa a compilação do relatório utilizando html2pdf
+            html2pdf().set(opt).from(targetElement).save();
+        };
+    </script>
+</body>
+</html>

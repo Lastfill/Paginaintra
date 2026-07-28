@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca CEP Rio de Janeiro | Encontre o CEP Exato</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+
+        .bg-rj {
+            background: linear-gradient(135deg, #213546 0%, #3b82f6 100%);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Estilos para o dropdown de sugestões */
+        .suggestions-dropdown {
+            position: absolute;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            margin-top: 4px;
+        }
+
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .suggestion-item:hover {
+            background-color: #eff6ff;
+        }
+
+        .suggestion-item.active {
+            background-color: #dbeafe;
+        }
+
+        .suggestion-street {
+            font-weight: 600;
+            color: #213546;
+        }
+
+        .suggestion-neighborhood {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .relative-container {
+            position: relative;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <header class="bg-rj text-white py-16 px-4 text-center shadow-lg">
+        <h1 class="text-3xl md:text-5xl font-extrabold mb-4">CEP Rio de Janeiro</h1>
+        <p class="text-lg md:text-xl opacity-90 max-w-2xl mx-auto">Busque por rua, bairro e número para encontrar o CEP
+            exato, diferenciando lados par e ímpar.</p>
+    </header>
+
+    <main class="max-w-4xl mx-auto -mt-10 px-4 pb-12">
+
+        <section class="glass-card rounded-2xl shadow-2xl p-6 md:p-10 mb-8 border border-blue-100">
+            <form id="cepForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="flex flex-col md:col-span-1 relative-container">
+                    <label class="text-sm font-semibold mb-1 text-blue-800">Endereço (Rua/Av)</label>
+                    <div class="relative">
+                        <input type="text" id="rua" placeholder="Ex: Avenida Júlio de Sá Bierrenbach"
+                            class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                            required autocomplete="off">
+                        <div id="suggestions" class="suggestions-dropdown hidden"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Digite pelo menos 3 caracteres para ver sugestões</p>
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-sm font-semibold mb-1 text-blue-800">Bairro</label>
+                    <input type="text" id="bairro" placeholder="Ex: Barra Olímpica"
+                        class="p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                        autocomplete="off">
+                </div>
+                <div class="flex flex-col">
+                    <label class="text-sm font-semibold mb-1 text-blue-800">Nº da Porta</label>
+                    <input type="number" id="numero" placeholder="Ex: 200"
+                        class="p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 outline-none transition-all"
+                        autocomplete="off">
+                </div>
+
+                <button type="submit" id="btnBuscar"
+                    class="md:col-span-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg text-lg transition-all shadow-lg flex justify-center items-center gap-2">
+                    <i class="fas fa-search"></i> Buscar CEP Exato
+                </button>
+            </form>
+
+            <div id="result"
+                class="mt-8 bg-white rounded-xl border border-blue-200 hidden overflow-hidden shadow-inner">
+                <!-- Resultados serão inseridos aqui -->
+            </div>
+        </section>
+
+        <div class="mb-8 p-4 bg-amber-50 border-l-4 border-amber-400 text-amber-800 text-sm rounded">
+            <strong>Dica Carioca:</strong> No Rio de Janeiro, ruas longas possuem diferentes CEPs para o lado
+            <strong>Par</strong> e o lado <strong>Ímpar</strong>. Informe o número da sua porta para filtrarmos
+            corretamente.
+        </div>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                <i class="fas fa-map-marked-alt text-blue-500 text-3xl mb-3"></i>
+                <h4 class="font-bold">Segmentação por Número</h4>
+                <p class="text-sm text-gray-500">Identificamos o CEP correto para cada lado da calçada.</p>
+            </div>
+            <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                <i class="fas fa-check-double text-green-500 text-3xl mb-3"></i>
+                <h4 class="font-bold">Dados Oficiais</h4>
+                <p class="text-sm text-gray-500">Consulta direta na base atualizada dos Correios (ViaCEP).</p>
+            </div>
+            <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                <i class="fas fa-copy text-purple-500 text-3xl mb-3"></i>
+                <h4 class="font-bold">Cópia Rápida</h4>
+                <p class="text-sm text-gray-500">Copie o CEP com um clique e use no seu app de entrega.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 py-10 px-4 text-center">
+        <p class="text-sm mb-2">© 2026 Consulta CEP Rio de Janeiro.</p>
+        <p class="text-xs max-w-lg mx-auto italic">Aviso: Base de dados pública. Não somos o site oficial dos Correios.
+        </p>
+    </footer>
+
+    <script>
+        const form = document.getElementById('cepForm');
+        const resultDiv = document.getElementById('result');
+        const btnBuscar = document.getElementById('btnBuscar');
+        const ruaInput = document.getElementById('rua');
+        const bairroInput = document.getElementById('bairro');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        let timeoutId;
+        let currentSuggestions = [];
+        let selectedIndex = -1;
+
+        // Evento de input para buscar sugestões
+        ruaInput.addEventListener('input', async (e) => {
+            clearTimeout(timeoutId);
+            const value = e.target.value.trim();
+
+            if (value.length < 3) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+
+            timeoutId = setTimeout(async () => {
+                await buscarSugestoes(value);
+            }, 300);
+        });
+
+        // Eventos de teclado para navegar nas sugestões
+        ruaInput.addEventListener('keydown', (e) => {
+            if (!currentSuggestions.length) return;
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+                    atualizarSelecaoSugestoes();
+                    break;
+
+                case 'ArrowUp':
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    atualizarSelecaoSugestoes();
+                    break;
+
+                case 'Enter':
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        selecionarSugestao(currentSuggestions[selectedIndex]);
+                    }
+                    break;
+
+                case 'Escape':
+                    suggestionsDiv.classList.add('hidden');
+                    break;
+            }
+        });
+
+        // Fechar sugestões ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!ruaInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.classList.add('hidden');
+            }
+        });
+
+        async function buscarSugestoes(termo) {
+            try {
+                const url = `https://viacep.com.br/ws/RJ/Rio de Janeiro/${encodeURIComponent(termo)}/json/`;
+                const response = await fetch(url);
+                const dados = await response.json();
+
+                if (!dados.length || dados.erro) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+
+                // Remover duplicados baseado no logradouro
+                const sugestoesUnicas = [];
+                const logradourosVistos = new Set();
+
+                dados.forEach(item => {
+                    if (!logradourosVistos.has(item.logradouro.toLowerCase())) {
+                        logradourosVistos.add(item.logradouro.toLowerCase());
+                        sugestoesUnicas.push({
+                            logradouro: item.logradouro,
+                            bairro: item.bairro
+                        });
+                    }
+                });
+
+                currentSuggestions = sugestoesUnicas.slice(0, 8); // Limitar a 8 sugestões
+                selectedIndex = -1;
+                exibirSugestoes(currentSuggestions);
+
+            } catch (error) {
+                suggestionsDiv.classList.add('hidden');
+            }
+        }
+
+        function exibirSugestoes(sugestoes) {
+            if (sugestoes.length === 0) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+
+            suggestionsDiv.innerHTML = '';
+            sugestoes.forEach((sugestao, index) => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                if (index === selectedIndex) {
+                    div.classList.add('active');
+                }
+
+                div.innerHTML = `
+                    <div class="suggestion-street">${sugestao.logradouro}</div>
+                    <div class="suggestion-neighborhood">${sugestao.bairro || 'Bairro não especificado'}</div>
+                `;
+
+                div.addEventListener('click', () => selecionarSugestao(sugestao));
+                suggestionsDiv.appendChild(div);
+            });
+
+            suggestionsDiv.classList.remove('hidden');
+        }
+
+        function atualizarSelecaoSugestoes() {
+            const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('active');
+                    // Scroll para o item selecionado
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function selecionarSugestao(sugestao) {
+            ruaInput.value = sugestao.logradouro;
+            if (sugestao.bairro && sugestao.bairro !== '') {
+                bairroInput.value = sugestao.bairro;
+                bairroInput.focus();
+            } else {
+                bairroInput.focus();
+            }
+            suggestionsDiv.classList.add('hidden');
+            currentSuggestions = [];
+            selectedIndex = -1;
+        }
+
+        // Restante do código original (form submit, exibir resultados, etc.)
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const rua = ruaInput.value.trim();
+            const bairroFiltro = bairroInput.value.trim().toLowerCase();
+            const numeroFiltro = document.getElementById('numero').value.trim();
+
+            if (rua.length < 3) {
+                alert("Digite ao menos 3 letras do nome da rua.");
+                return;
+            }
+
+            btnBuscar.disabled = true;
+            btnBuscar.innerHTML = '<i class="fas fa-spinner animate-spin"></i> Analisando numeração...';
+            resultDiv.innerHTML = '';
+            resultDiv.classList.add('hidden');
+            suggestionsDiv.classList.add('hidden');
+
+            try {
+                const url = `https://viacep.com.br/ws/RJ/Rio de Janeiro/${encodeURIComponent(rua)}/json/`;
+                const response = await fetch(url);
+                const dados = await response.json();
+
+                if (!dados.length || dados.erro) {
+                    exibirErro("Endereço não localizado. Tente digitar apenas o nome principal da rua.");
+                } else {
+                    // Filtrar por bairro se preenchido
+                    let resultados = bairroFiltro
+                        ? dados.filter(item => item.bairro.toLowerCase().includes(bairroFiltro))
+                        : dados;
+
+                    if (resultados.length === 0) {
+                        exibirErro("Rua encontrada, mas o bairro não coincide.");
+                    } else {
+                        exibirResultados(resultados, numeroFiltro);
+                    }
+                }
+            } catch (error) {
+                exibirErro("Falha na conexão com o banco de dados.");
+            } finally {
+                btnBuscar.disabled = false;
+                btnBuscar.innerHTML = '<i class="fas fa-search"></i> Buscar CEP Exato';
+            }
+        };
+
+        function exibirResultados(lista, numUsuario) {
+            resultDiv.classList.remove('hidden');
+
+            lista.forEach(item => {
+                const complemento = item.complemento ? item.complemento.toLowerCase() : '';
+                const eDestaque = verificarMatchNumero(numUsuario, complemento);
+
+                const card = document.createElement('div');
+                card.className = `p-5 border-b last:border-0 flex flex-col md:flex-row justify-between items-center gap-4 animate-fade-in ${eDestaque ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''}`;
+
+                card.innerHTML = `
+                    <div class="flex-1 text-center md:text-left">
+                        <div class="flex items-center justify-center md:justify-start gap-2">
+                            <h3 class="font-bold text-blue-900 text-lg">${item.logradouro}</h3>
+                            ${eDestaque ? '<span class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full uppercase">Lado Correto</span>' : ''}
+                        </div>
+                        <p class="text-sm text-gray-600">${item.bairro} - Rio de Janeiro/RJ</p>
+                        <p class="text-xs font-bold text-blue-500 mt-1 uppercase">
+                            <i class="fas fa-info-circle"></i> ${item.complemento || 'Trecho Geral'}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-2xl font-black text-gray-800 tracking-tighter">${item.cep}</span>
+                        <button onclick="copyCEP('${item.cep}')" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-800 transition-all shadow-md active:scale-90">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                `;
+                resultDiv.appendChild(card);
+            });
+
+            window.scrollTo({ top: resultDiv.offsetTop - 50, behavior: 'smooth' });
+        }
+
+        function verificarMatchNumero(num, comp) {
+            if (!num || !comp) return false;
+            const n = parseInt(num);
+
+            // Lógica de Lado Par
+            if (comp.includes("par") && n % 2 === 0) return true;
+            // Lógica de Lado Ímpar
+            if (comp.includes("ímpar") && n % 2 !== 0) return true;
+            // Se houver faixa numérica (ex: "de 100 a 200")
+            const faixas = comp.match(/\d+/g);
+            if (faixas && faixas.length >= 2) {
+                const inicio = parseInt(faixas[0]);
+                const fim = parseInt(faixas[1]);
+                return (n >= inicio && n <= fim);
+            }
+            return false;
+        }
+
+        function exibirErro(msg) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = `<div class="p-8 text-center text-red-500 font-bold"><i class="fas fa-times-circle text-2xl mb-2 block"></i> ${msg}</div>`;
+        }
+
+        function copyCEP(cep) {
+            navigator.clipboard.writeText(cep);
+            const aviso = document.createElement('div');
+            aviso.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-fade-in";
+            aviso.innerHTML = `CEP <b>${cep}</b> copiado!`;
+            document.body.appendChild(aviso);
+            setTimeout(() => aviso.remove(), 2500);
+        }
+    </script>
+</body>
+
+</html>

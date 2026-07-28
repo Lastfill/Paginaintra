@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Imobiliário RJ</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        h1 { text-align: center; color: #1a2a6c; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h3 { color: #1a2a6c; margin-top: 25px; border-left: 4px solid #0a7cff; padding-left: 10px; }
+
+        .section { margin-bottom: 25px; padding: 15px; border: 1px solid #eef0f2; border-radius: 8px; background: #fafbfc; position: relative; }
+        .section-title { font-weight: bold; margin-bottom: 15px; color: #555; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+
+        .grid-header { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .grid-unidade { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px dashed #ddd; padding-top: 15px; }
+        .grid-params { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+        .field { display: flex; flex-direction: column; }
+        label { font-size: 0.8em; margin-bottom: 5px; color: #666; font-weight: 600; }
+        
+        input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        input:focus { border-color: #0a7cff; outline: none; }
+
+        /* Informativo de Porcentagem Total */
+        .pct-info-box { display: inline-block; font-size: 0.85em; font-weight: bold; padding: 4px 10px; border-radius: 4px; margin-top: 15px; }
+        .pct-sucesso { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .pct-aviso { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        button { flex: 1; min-width: 150px; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-calc { background: #0a7cff; color: white; }
+        .btn-calc:hover { background: #0061d5; }
+        .btn-pdf { background: #28a745; color: white; }
+        .btn-pdf:hover { background: #218838; }
+
+        .result-box { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; align-items: start; margin-top: 20px; }
+        #resumo { background: #f8f9ff; padding: 20px; border-radius: 8px; font-size: 0.9em; border-left: 5px solid #0a7cff; line-height: 1.6; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f1f3f5; padding: 12px; font-size: 0.9em; border: 1px solid #eee; }
+        td { border: 1px solid #eee; padding: 10px; text-align: center; font-size: 0.9em; }
+        .row-ato { color: #2c3e50; font-weight: bold; background-color: #f8f9fa; }
+        .row-inter { color: #805ad5; font-weight: bold; }
+
+        @media (max-width: 850px) { .result-box { grid-template-columns: 1fr; } .grid-unidade { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Simulador de Fluxo Imobiliário</h1>
+
+    <div class="section">
+        <div class="section-title">Identificação</div>
+        <div class="grid-header">
+            <div class="field"><label>Empresa</label><input id="empresa" placeholder="Ex: Imóvel Barra" value="Imóvel Barra"></div>
+            <div class="field"><label>Cliente</label><input id="cliente" placeholder="Nome completo do Cliente"></div>
+            <div class="field"><label>Empreendimento</label><input id="empreendimento" placeholder="Ex: Residencial Solar"></div>
+        </div>
+        
+        <div class="grid-unidade">
+            <div class="field"><label>Unidade (Apto / Bloco)</label><input id="unidade" placeholder="Ex: Apto 101 - Bl 2"></div>
+            <div class="field"><label>Valor do Imóvel</label><input id="valor" type="text" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Condições de Pagamento</div>
+        <div class="grid-params">
+            <div class="field"><label>Data de Início</label><input id="dataInicio" type="date"></div>
+            <div class="field"><label>% Ato</label><input id="ato" type="number" value="10" oninput="atualizarSomaPorcentagens()"></div>
+            <div class="field"><label>% Mensais</label><input id="mensalPct" type="number" value="20" oninput="atualizarSomaPorcentagens()"></div>
+            <div class="field"><label>Qtd Mensais</label><input id="mensalQtd" type="number" value="24"></div>
+            <div class="field"><label>% Intermediárias</label><input id="interPct" type="number" value="10" oninput="atualizarSomaPorcentagens()"></div>
+            <div class="field"><label>Qtd Inters.</label><input id="interQtd" type="number" value="4"></div>
+            <div class="field"><label>% Chaves</label><input id="chaves" type="number" value="10" oninput="atualizarSomaPorcentagens()"></div>
+            <div class="field"><label>% Financiamento</label><input id="finPct" type="number" value="50" oninput="atualizarSomaPorcentagens()"></div>
+            <div class="field"><label>INCC (% ao mês)</label><input id="incc" type="number" step="0.01" value="0.36"></div>
+        </div>
+        <div id="pctInfo" class="pct-info-box pct-sucesso">
+            Total das Porcentagens: 100% (Apropriado)
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-calc" onclick="calcular(false)">Simular sem INCC</button>
+        <button class="btn-calc" onclick="calcular(true)" style="background:#5a67d8">Simular com INCC</button>
+        <button class="btn-pdf" onclick="gerarPDF()">Gerar Proposta PDF</button>
+    </div>
+
+    <div class="result-box">
+        <div>
+            <h3>Resumo Financeiro</h3>
+            <div id="resumo">Preencha os dados e clique em calcular para ver o resumo.</div>
+            
+            <h3>Tabela de Fluxo Detalhada</h3>
+            <table id="tabela">
+                <thead>
+                    <tr>
+                        <th>Nº Parcela</th>
+                        <th>Vencimento</th>
+                        <th>Tipo</th>
+                        <th>Valor Estimado</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo">
+                    <tr><td colspan="4">Nenhum dado calculado</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <h3>Distribuição do Fluxo</h3>
+            <div style="max-width: 350px; margin: auto;">
+                <canvas id="grafico"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+let chartInstance = null;
+let ultimoResumo = {};
+let ultimoCalculoComIncc = false;
+
+document.getElementById('dataInicio').valueAsDate = new Date();
+
+function formatBRL(v){ return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function getVal(id){ return parseFloat(document.getElementById(id).value) || 0; }
+
+// Aplica formato de moeda digitada em tempo real (Máscara)
+function mascaraMoeda(input) {
+    let valor = input.value.replace(/\D/g, "");
+    valor = (parseFloat(valor) / 100).toFixed(2);
+    if (isNaN(valor) || valor === "0.00") {
+        input.value = "";
+        return;
+    }
+    input.value = parseFloat(valor).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
+
+// Converte a string formatada em "R$ 500.000,00" de volta em número float puro para cálculos
+function obterValorNumericoImovel() {
+    const stringMoeda = document.getElementById('valor').value;
+    if(!stringMoeda) return 0;
+    // Remove "R$", espaços, pontos de milhar e substitui a vírgula decimal por ponto
+    const limpo = stringMoeda.replace("R$", "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+    return parseFloat(limpo) || 0;
+}
+
+// Inicializa o valor padrão já formatado como Moeda na tela
+document.getElementById('valor').value = (500000).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function atualizarSomaPorcentagens() {
+    const soma = getVal('ato') + getVal('mensalPct') + getVal('interPct') + getVal('chaves') + getVal('finPct');
+    const infoBox = document.getElementById('pctInfo');
+    
+    if (soma === 100) {
+        infoBox.className = "pct-info-box pct-sucesso";
+        infoBox.innerHTML = `Total das Porcentagens: 100% (Apropriado)`;
+    } else {
+        infoBox.className = "pct-info-box pct-aviso";
+        infoBox.innerHTML = `⚠️ Total das Porcentagens: ${soma}% (O ideal para o fechamento é atingir 100%)`;
+    }
+    return soma;
+}
+
+atualizarSomaPorcentagens();
+
+function calcular(comIncc){
+    ultimoCalculoComIncc = comIncc;
+    const v = obterValorNumericoImovel(); // Usa o valor convertido numérico aqui
+    const incc = getVal('incc') / 100;
+    const dataInicioStr = document.getElementById('dataInicio').value;
+    const dataInicio = dataInicioStr ? new Date(dataInicioStr) : new Date();
+
+    const ato = v * (getVal('ato') / 100);
+    const mensaisTotal = v * (getVal('mensalPct') / 100);
+    const interTotal = v * (getVal('interPct') / 100);
+    const ch = v * (getVal('chaves') / 100);
+    const fin = v * (getVal('finPct') / 100);
+
+    const mensalQtd = Math.max(1, parseInt(document.getElementById('mensalQtd').value) || 1);
+    const interQtd = Math.max(1, parseInt(document.getElementById('interQtd').value) || 1);
+
+    const vMensalUnit = mensaisTotal / mensalQtd;
+    const vInterUnit = interTotal / interQtd;
+
+    ultimoResumo = {
+        empresa: document.getElementById('empresa').value || 'Não informada',
+        cliente: document.getElementById('cliente').value || 'Não informado',
+        empreendimento: document.getElementById('empreendimento').value || 'Não informado',
+        unidade: document.getElementById('unidade').value || 'Não informada',
+        valor: v, ato, mensaisTotal, interTotal, ch, fin, mensalQtd, interQtd, vMensalUnit, vInterUnit
+    };
+
+    document.getElementById('resumo').innerHTML = `
+        <strong>Valor do Imóvel:</strong> ${formatBRL(v)} <br><hr>
+        <strong>Ato (${getVal('ato')}%):</strong> 1x de ${formatBRL(ato)}<br>
+        <strong>Mensais (${getVal('mensalPct')}%):</strong> ${mensalQtd}x de ${formatBRL(vMensalUnit)}<br>
+        <strong>Intermediárias (${getVal('interPct')}%):</strong> ${interQtd}x de ${formatBRL(vInterUnit)}<br>
+        <strong>Chaves (${getVal('chaves')}%):</strong> ${formatBRL(ch)}<br>
+        <strong>Financiamento (${getVal('finPct')}%):</strong> ${formatBRL(fin)}<br><hr>
+        <strong>Total Nominal:</strong> ${formatBRL(ato + mensaisTotal + interTotal + ch + fin)}<br>
+        <small>*Tipo: ${comIncc ? 'Com correção de ' + getVal('incc') + '% a.m.' : 'Fluxo Direto (Sem reajuste)'}</small>
+    `;
+
+    gerarTabela(ato, vMensalUnit, vInterUnit, ch, fin, comIncc, incc, mensalQtd, interQtd, dataInicio);
+    gerarGrafico(ato, mensaisTotal, interTotal, ch, fin);
+}
+
+function gerarTabela(ato, vMensal, vInter, ch, fin, comIncc, incc, mensalQtd, interQtd, dataInicio){
+    const corpo = document.getElementById('tabelaCorpo');
+    corpo.innerHTML = "";
+    
+    let dataAtual = new Date(dataInicio);
+    dataAtual.setDate(dataAtual.getDate() + 1);
+    let pCount = 1;
+
+    corpo.innerHTML += `<tr class="row-ato"><td>${pCount}º</td><td>${dataAtual.toLocaleDateString('pt-BR')}</td><td>Ato</td><td>${formatBRL(ato)}</td></tr>`;
+    pCount++;
+
+    const freqInter = Math.floor(mensalQtd / interQtd) || 6;
+    let interContador = 1;
+
+    for(let i = 1; i <= mensalQtd; i++){
+        dataAtual.setMonth(dataAtual.getMonth() + 1);
+        
+        let vMensalCalc = vMensal;
+        if(comIncc) { vMensalCalc *= Math.pow(1 + incc, i); }
+        corpo.innerHTML += `<tr><td>${pCount}º</td><td>${dataAtual.toLocaleDateString('pt-BR')}</td><td>Mensal ${i}/${mensalQtd}</td><td>${formatBRL(vMensalCalc)}</td></tr>`;
+        pCount++;
+
+        if(i % freqInter === 0 && interContador <= interQtd) {
+            let vInterCalc = vInter;
+            if(comIncc) { vInterCalc *= Math.pow(1 + incc, i); }
+            corpo.innerHTML += `<tr class="row-inter"><td>${pCount}º</td><td>${dataAtual.toLocaleDateString('pt-BR')}</td><td>Intermediária ${interContador}/${interQtd}</td><td>${formatBRL(vInterCalc)}</td></tr>`;
+            pCount++;
+            interContador++;
+        }
+    }
+
+    dataAtual.setMonth(dataAtual.getMonth() + 1);
+    let vChavesCalc = ch;
+    if(comIncc) { vChavesCalc *= Math.pow(1 + incc, mensalQtd + 1); }
+    corpo.innerHTML += `<tr style="background:#fff9c4; font-weight:bold;"><td>-</td><td>${dataAtual.toLocaleDateString('pt-BR')}</td><td>Chaves</td><td>${formatBRL(vChavesCalc)}</td></tr>`;
+
+    let vFinCalc = fin;
+    if(comIncc) { vFinCalc *= Math.pow(1 + incc, mensalQtd + 2); }
+    corpo.innerHTML += `<tr style="background:#ffebee; font-weight:bold;"><td>-</td><td>${dataAtual.toLocaleDateString('pt-BR')}</td><td>Financiamento Bancário</td><td>${formatBRL(vFinCalc)}</td></tr>`;
+}
+
+function gerarGrafico(a, m, i, c, f){
+    if(chartInstance) chartInstance.destroy();
+    const ctx = document.getElementById('grafico').getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ato', 'Mensais', 'Inters.', 'Chaves', 'Financ.'],
+            datasets: [{
+                data: [a, m, i, c, f],
+                backgroundColor: ['#2c3e50', '#1cc88a', '#805ad5', '#f6c23e', '#e74a3b']
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+function gerarPDF(){
+    if(!ultimoResumo.valor) {
+        alert("Por favor, realize a simulação na tela antes de exportar o PDF.");
+        return;
+    }
+
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const dataEmissao = new Date().toLocaleDateString('pt-BR');
+
+    // --- CABEÇALHO CORPORATIVO ---
+    doc.setFillColor(26, 42, 108);
+    doc.rect(0, 0, 210, 38, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text(ultimoResumo.empresa.toUpperCase(), 15, 18);
+    
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text("Proposta Comercial de Fluxo de Pagamento", 15, 28);
+    doc.text(`Emissão: ${dataEmissao}`, 195, 28, { align: 'right' });
+
+    // --- BLOCO 1: IDENTIFICAÇÃO ---
+    doc.setTextColor(51, 51, 51);
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("1. Dados da Proposta", 15, 52);
+    doc.setDrawColor(220, 220, 220);
+    doc.line(15, 55, 195, 55);
+
+    doc.setFontSize(10.5);
+    doc.setFont("Helvetica", "normal");
+    doc.text(`Cliente:`, 15, 63);
+    doc.setFont("Helvetica", "bold"); doc.text(ultimoResumo.cliente, 45, 63); doc.setFont("Helvetica", "normal");
+    
+    doc.text(`Empreendimento:`, 15, 70);
+    doc.setFont("Helvetica", "bold"); doc.text(ultimoResumo.empreendimento, 45, 70); doc.setFont("Helvetica", "normal");
+
+    doc.text(`Unidade:`, 125, 63);
+    doc.setFont("Helvetica", "bold"); doc.text(ultimoResumo.unidade, 158, 63); doc.setFont("Helvetica", "normal");
+    
+    doc.text(`Valor de Avaliação:`, 125, 70);
+    doc.setFont("Helvetica", "bold"); doc.text(formatBRL(ultimoResumo.valor), 158, 70); doc.setFont("Helvetica", "normal");
+
+    // --- BLOCO 2: CONDIÇÕES ---
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("2. Resumo da Distribuição Financeira", 15, 85);
+    doc.line(15, 88, 195, 88);
+
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    const infoReajuste = ultimoCalculoComIncc ? `Com correção monetária de ${getVal('incc')}% a.m. (Índice INCC)` : "Fluxo Fixo Direto (Sem reajuste)";
+    doc.text(`Regime de Atualização: ${infoReajuste}`, 15, 95);
+
+    const c1 = 15, c2 = 82, c3 = 145;
+    doc.text(`• Ato: 1x de ${formatBRL(ultimoResumo.ato)}`, c1, 103);
+    doc.text(`• Chaves: ${formatBRL(ultimoResumo.ch)}`, c1, 110);
+
+    doc.text(`• Mensais: ${ultimoResumo.mensalQtd}x de ${formatBRL(ultimoResumo.vMensalUnit)}`, c2, 103);
+    doc.text(`• Intermediárias: ${ultimoResumo.interQtd}x de ${formatBRL(ultimoResumo.vInterUnit)}`, c2, 110);
+
+    doc.text(`• Financiamento: ${formatBRL(ultimoResumo.fin)}`, c3, 103);
+    doc.setFont("Helvetica", "bold");
+    doc.text(`• Total Nominal: ${formatBRL(ultimoResumo.ato + ultimoResumo.mensaisTotal + ultimoResumo.interTotal + ultimoResumo.ch + ultimoResumo.fin)}`, c3, 110);
+
+    // --- BLOCO 3: CRONOGRAMA DE PARCELAS ---
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("3. Cronograma Estimado de Parcelas", 15, 125);
+
+    const linhasTabela = [];
+    const rows = document.querySelectorAll("#tabelaCorpo tr");
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        if(cols.length === 4) {
+            linhasTabela.push([cols[0].innerText, cols[1].innerText, cols[2].innerText, cols[3].innerText]);
+        }
+    });
+
+    doc.autoTable({
+        startY: 130,
+        head: [['Nº Parcela', 'Vencimento', 'Discriminação do Tipo', 'Valor de Parcela']],
+        body: linhasTabela,
+        theme: 'striped',
+        headStyles: { fillColor: [26, 42, 108], halign: 'center', fontSize: 9.5 },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 22 },
+            1: { halign: 'center', cellWidth: 35 },
+            2: { halign: 'left' },
+            3: { halign: 'right', fontStyle: 'bold' }
+        },
+        styles: { fontSize: 8.5 },
+        margin: { bottom: 18 },
+        didParseCell: function (data) {
+            const txtTipo = data.row.raw[2] || "";
+            if (txtTipo.includes("Chaves") || txtTipo.includes("Ato")) {
+                data.cell.styles.fillColor = [255, 249, 196]; 
+                data.cell.styles.textColor = [0, 0, 0];
+            }
+            if (txtTipo.includes("Financiamento")) {
+                data.cell.styles.fillColor = [255, 235, 235];
+                data.cell.styles.textColor = [183, 28, 28];
+            }
+        },
+        didDrawPage: function (data) {
+            const pageCount = doc.internal.getNumberOfPages();
+            doc.setFont("Helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(120, 120, 120);
+
+            const textoAviso = "Este documento trata-se de uma simples simulação de fluxo de pagamento com caráter informativo, dependendo integralmente de análise técnica e aprovação formal do setor comercial da construtora responsável para validação definitiva.";
+            
+            doc.setDrawColor(230, 230, 230);
+            doc.line(15, doc.internal.pageSize.height - 14, 195, doc.internal.pageSize.height - 14);
+
+            doc.text(textoAviso, 15, doc.internal.pageSize.height - 10, { maxWidth: 180, align: "left" });
+            doc.text(`Página ${data.pageNumber} de ${pageCount}`, 195, doc.internal.pageSize.height - 6, { align: "right" });
+        }
+    });
+
+    doc.save(`Proposta_${ultimoResumo.cliente.replace(/\s+/g, '_')}.pdf`);
+}
+</script>
+</body>
+</html>
