@@ -1,0 +1,979 @@
+/* =====================================================
+   RESET + BASE
+===================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: rgb(217, 217, 217);
+    color: #333;
+}
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* =====================================================
+   LAYOUT PRINCIPAL
+===================================================== */
+
+/* =====================================================
+   LAYOUT PRINCIPAL
+===================================================== */
+
+.container {
+    display: flex;
+    min-height: 100vh;
+    margin-bottom: 32px;          /* ← espaço entre o container e a barra wide */
+}
+
+/* =====================================================
+   SIDEBAR
+===================================================== */
+.sidebar {
+    width: 20%;
+    min-width: 280px;
+    background-color: #213546;
+    color: #fff;
+    padding: 20px;
+    overflow-y: auto;
+    
+    align-self: flex-start;
+    position: sticky;
+    top: 0;
+    max-height: calc(100vh - 32px);   /* ← deixa espaço embaixo */
+    margin-bottom: 0;
+}
+.sidebar-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.sidebar-header img {
+    max-width: 180px;
+    width: 100%;
+}
+
+/* Accordion */
+.accordion-item {
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 10px;
+}
+.accordion-item summary {
+    cursor: pointer;
+    padding: 14px 10px;
+    font-weight: 700;
+    list-style: none;
+}
+.accordion-item summary::-webkit-details-marker {
+    display: none;
+}
+.accordion-item summary::before {
+    content: "➔ ";
+    margin-right: 4px;
+}
+.accordion-item[open] summary {
+    background-color: #4e4e9a;
+    border-radius: 6px;
+}
+.accordion-content {
+    padding: 12px 10px 18px 22px;
+}
+.accordion-content a {
+    display: block;
+    text-decoration: none;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: #ffffff;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+.accordion-content a:hover {
+    text-decoration: none;
+    transform: translateX(8px);
+}
+
+/* =====================================================
+   CONTEÚDO PRINCIPAL
+===================================================== */
+
+.main-content {
+    width: 80%;
+    max-width: 1400px;
+    padding: 24px;
+    overflow-y: auto;
+    margin: 0 auto;
+}
+
+/* =====================================================
+   HERO ENTERPRISE – FLUIDO (CLAMP)
+===================================================== */
+
+.main-banner {
+    margin-bottom: clamp(32px, 4vw, 46px);
+}
+.banner-link {
+    position: relative;
+    display: block;
+    border-radius: clamp(16px, 2vw, 22px);
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 16 / 5;
+    min-height: 300px;
+}
+.hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+.banner-link img {
+    width: 100%;
+    display: block;
+}
+
+/* Overlay – 80% da largura das colunas */
+.banner-overlay {
+    position: absolute;
+    inset: 0;
+    width: 80%;
+    max-width: 80%;
+    padding: clamp(28px, 5vw, 72px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 2.5vw, 24px);
+    background: linear-gradient(
+        90deg,
+        rgba(0,0,0,0.85) 0%,
+        rgba(0,0,0,0.60) 50%,
+        rgba(0,0,0,0.30) 75%,
+        rgba(0,0,0,0) 100%
+    );
+    color: #eefaf5;
+    z-index: 2;
+}
+
+/* Headline fluida */
+.banner-overlay h1 {
+    font-size: clamp(2rem, 3.2vw, 3.2rem);
+    line-height: clamp(1.08, 1.1, 1.15);
+    font-weight: 800;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: heroFadeUp 0.8s ease-out 0.15s forwards;
+}
+
+/* ===== BLOCO TEXTO + CTA (FLUIDO) ===== */
+.banner-body {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: clamp(16px, 3vw, 32px);
+    max-width: 100%;
+}
+
+.banner-body p {
+    font-size: clamp(1rem, 1.3vw, 1.15rem);
+    line-height: clamp(1.55, 1.6, 1.7);
+    margin: 0;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: heroFadeUp 0.8s ease-out 0.3s forwards;
+}
+
+.banner-cta {
+    background: linear-gradient(135deg, #1fcf8b, #14b87a);
+    color: #edf4ae;
+    padding: clamp(12px, 1.2vw, 14px) clamp(24px, 3vw, 38px);
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: clamp(0.75rem, 0.9vw, 0.85rem);
+    letter-spacing: clamp(0.4px, 0.08vw, 0.6px);
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 clamp(10px, 1.8vw, 14px) clamp(22px, 3vw, 30px) rgba(31,207,139,0.35);
+    opacity: 0;
+    transform: translateY(24px);
+    animation: heroFadeUp 0.8s ease-out 0.45s forwards;
+}
+.banner-cta-inner {
+    display: inline-block;
+    transition: transform .25s ease;
+}
+.banner-link:hover .banner-cta-inner {
+    transform: translateY(-8px);
+}
+.banner-link:hover .banner-cta {
+    transform: translateY(-8px);
+    box-shadow: 0 clamp(14px, 2vw, 18px) clamp(32px, 4vw, 40px) rgba(31,207,139,0.45);
+}
+
+@keyframes heroFadeUp {
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* =====================================================
+   QUICK LINKS – mesma largura do footer
+===================================================== */
+
+.quick-links-bar {
+    background-color: #213546;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+    border: 1px solid #ffffff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    width: 100%;
+}
+.quick-links-bar a {
+    color: white;
+    background-color: #213546;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 5px 15px;
+    display: inline-block;
+}
+.quick-links-bar a:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+    background-color: #1456b8;
+    border: 2px solid #edf0d1;
+    border-radius: 10px;
+    padding: 5px 15px;
+    display: inline-block;
+}
+
+/* =====================================================
+   GRID DE 3 COLUNAS
+===================================================== */
+
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 28px;
+    width: 100%;
+}
+
+/* Cada coluna empilha os cards verticalmente */
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.column .card {
+    width: 100%;
+}
+
+/* =====================================================
+   ESTILIZAÇÃO DA AGENDA DE ATIVIDADES
+===================================================== */
+
+.calendar-card {
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.979)
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #fc4c02;
+}
+
+.calendar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.calendar-title h3 {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+    font-size: 1.15rem;
+    color: #213546;
+    font-weight: 700;
+}
+
+.calendar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #4285F4;
+    color: #FFF !important;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+}
+
+.calendar-btn:hover {
+    transform: translateY(-2px);
+    background: #2d73e0;
+    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.3);
+}
+
+.calendar-today-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(33, 53, 70, 0.04);
+    padding: 12px;
+    border-radius: 10px;
+    border-left: 4px solid #fc4c02;
+}
+
+.calendar-today-summary h4 {
+    margin: 0 0 4px 0;
+    font-size: 0.9rem;
+    color: #213546;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calendar-event-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.event-time {
+    background: #213546;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.event-desc {
+    color: #333;
+    font-weight: 500;
+}
+
+.calendar-body {
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid #d9e3ec;
+    background: #FFF;
+}
+
+.calendar-body iframe {
+    width: 100%;
+    height: 350px;
+    border: 0;
+    display: block;
+}
+
+.calendar-footer-metrics {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+
+.metric-pill {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border: 1px solid #e1e6eb;
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.metric-pill.highlight {
+    border-color: rgba(252, 76, 2, 0.3);
+    background: rgba(252, 76, 2, 0.05);
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.metric-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #213546;
+}
+
+.metric-pill.highlight .metric-value {
+    color: #fc4c02;
+}
+
+.agenda-card {
+    padding: 20px;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.agenda-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.agenda-title {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.agenda-title i {
+    font-size: 28px;
+    color: #f26522;
+}
+
+.agenda-title h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.agenda-title span {
+    color: #777;
+    font-size: 12px;
+}
+
+.agenda-open {
+    background: #4285F4;
+    color: white;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    transition: .25s;
+}
+
+.agenda-open:hover {
+    background: #2f73dd;
+}
+
+#agendaHoje {
+    margin-bottom: 18px;
+}
+
+.agenda-bloco {
+    margin-bottom: 25px;
+}
+
+.agenda-bloco h4 {
+    color: #213546;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.evento {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: #f8fafc;
+    border-left: 5px solid #4285F4;
+    transition: .25s;
+}
+
+.evento:hover {
+    transform: translateX(4px);
+}
+
+.hora {
+    width: 70px;
+    font-weight: bold;
+    color: #213546;
+}
+
+.info {
+    flex: 1;
+}
+
+.info h5 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.info p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.emAndamento {
+    border-left-color: #00b050;
+}
+
+.finalizado {
+    opacity: .55;
+}
+
+#agendaLoading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+.semEventos {
+    text-align: center;
+    color: #999;
+    padding: 25px;
+}
+
+/* =====================================================
+   CARDS
+===================================================== */
+
+.card {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #fc4c02;
+    color: #213546;
+}
+
+/* Links dentro dos cards */
+.card-links a {
+    display: block;
+    margin-bottom: 10px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+.card-links a:hover {
+    color: #213546;
+    transform: translateX(8px);
+}
+.card-link:focus-visible {
+    outline: 2px solid #7eb7f4;
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+/* =====================================================
+   BOTÕES / DOWNLOADS
+===================================================== */
+
+.btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background-color: #213546;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.btn:hover {
+    background-color: #1456b8;
+    transform: translateY(-1px);
+}
+
+/* Box documentação */
+.documentation-box {
+    margin-top: 20px;
+    background-color: #f4f6fb;
+    padding: 16px;
+    border-radius: 8px;
+}
+.documentation-box h4 {
+    margin-top: 0;
+}
+.documentation-box ul {
+    padding-left: 18px;
+}
+
+/* =====================================================
+   QUICK LINKS – versão WIDE (100% da tela)
+===================================================== */
+
+.quick-links-bar {
+    background-color: #213546;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+    border: 1px solid #ffffff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    width: 100%;
+}
+
+.quick-links-bar a {
+    color: white;
+    background-color: #213546;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 5px 15px;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.quick-links-bar a:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+    background-color: #1456b8;
+    border: 2px solid #edf0d1;
+}
+
+/* =====================================================
+   QUICK LINKS – versão WIDE (100% da tela)
+===================================================== */
+
+.quick-links-bar {
+    background-color: #213546;
+    padding: 14px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+    border: 1px solid #ffffff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    width: 100%;
+}
+
+.quick-links-bar a {
+    color: white;
+    background-color: #213546;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 5px 15px;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.quick-links-bar a:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+    background-color: #1456b8;
+    border: 2px solid #edf0d1;
+}
+
+/* ===== VERSÃO WIDE – 100% da tela (fora do container) ===== */
+/* ===== VERSÃO WIDE – 100% da tela ===== */
+.quick-links-bar.wide {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 16px 24px;
+    background-color: #213546;
+    margin-top: 8px;
+}
+
+/* =====================================================
+   FOOTER – 100% da tela + RESPONSIVO
+===================================================== */
+
+.site-footer {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 36px 24px 28px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+
+    /* Degradê radial – centro mais claro */
+    background: radial-gradient(
+        ellipse at center,
+        #2f4a60 0%,
+        #213546 55%,
+        #1a2a38 100%
+    );
+    color: #e8eef4;
+}
+
+.site-footer img {
+    max-width: 160px;
+    width: 100%;
+    height: auto;
+    margin-bottom: 14px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    filter: brightness(1.05);
+}
+
+.site-footer p {
+    margin: 0;
+    color: #c5d0db;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.site-footer a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* =====================================================
+   RESPONSIVO – FOOTER
+===================================================== */
+
+/* Tablet */
+@media (max-width: 1100px) {
+    .site-footer {
+        padding: 32px 20px 24px;
+    }
+
+    .site-footer img {
+        max-width: 140px;
+    }
+
+    .site-footer p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+    .site-footer {
+        padding: 28px 16px 22px;
+    }
+
+    .site-footer img {
+        max-width: 120px;
+        margin-bottom: 12px;
+    }
+
+    .site-footer p {
+        font-size: 0.85rem;
+    }
+}
+
+/* Telas muito pequenas */
+@media (max-width: 480px) {
+    .site-footer {
+        padding: 24px 14px 20px;
+    }
+
+    .site-footer img {
+        max-width: 110px;
+    }
+
+    .site-footer p {
+        font-size: 0.8rem;
+    }
+}
+/* =====================================================
+   EVITAR CORTE NO FINAL DA PÁGINA
+===================================================== */
+
+body {
+    padding-bottom: 40px;          /* espaço de segurança no final */
+}
+
+/* No mobile o espaço precisa ser um pouco maior */
+@media (max-width: 900px) {
+    body {
+        padding-bottom: 60px;
+    }
+
+    .main-content {
+        padding-bottom: 32px;      /* evita corte dos cards */
+    }
+
+    .quick-links-bar.wide {
+        margin-bottom: 0;
+    }
+
+    .site-footer {
+        padding-bottom: 36px;      /* mais respiro no footer */
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* =====================================================
+   RESPONSIVO
+===================================================== */
+
+/* Tablet – 2 colunas */
+@media (max-width: 1100px) {
+    .content-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+/* Mobile – 1 coluna */
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+    }
+    .sidebar,
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+    }
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    .column {
+        gap: 18px;
+    }
+
+    /* Banner mobile */
+    .banner-link {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 4 / 3;
+        min-height: 380px;
+        display: block;
+    }
+    .hero-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .banner-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        max-width: 100%;
+        padding: clamp(20px, 6vw, 32px);
+        justify-content: center;
+        background: linear-gradient(
+            180deg,
+            rgba(0,0,0,0.4) 0%,
+            rgba(0,0,0,0.85) 100%
+        );
+    }
+    .banner-body {
+        grid-template-columns: 1fr;
+        row-gap: clamp(16px, 4vw, 22px);
+        max-width: 100%;
+        align-items: center;
+    }
+    .banner-overlay h1 {
+        font-size: clamp(1.5rem, 5vw, 2.2rem);
+        text-align: center;
+    }
+    .banner-body p {
+        font-size: clamp(0.95rem, 3vw, 1.1rem);
+        text-align: center;
+    }
+    .banner-cta {
+        width: 100%;
+        text-align: center;
+        margin-top: 10px;
+    }
+}
+/* =====================================================
+   CALENDÁRIO / AGENDA (IFRAME)
+===================================================== */
+
+.calendar-container {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e1e6eb;
+    background: #fff;
+    margin-top: 8px;
+}
+
+.calendar-container iframe {
+    display: block;
+    width: 100%;
+    height: 420px;
+    border: 0;
+}
